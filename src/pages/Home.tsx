@@ -6,6 +6,8 @@ import { formatDateShort } from "@/utils";
 import type { Memorial } from "@/types";
 
 function MemorialCard({ memorial, index }: { memorial: Memorial; index: number }) {
+  const isPrivate = memorial.isPrivate;
+
   return (
     <Link
       to={`/memorial/${memorial.id}`}
@@ -13,49 +15,69 @@ function MemorialCard({ memorial, index }: { memorial: Memorial; index: number }
       style={{ animationDelay: `${index * 0.1}s`, opacity: 0 }}
     >
       <div className="relative h-48 bg-gradient-to-br from-memorial-100 to-memorial-200 overflow-hidden">
-        {memorial.avatar ? (
+        {memorial.avatar && !isPrivate ? (
           <img
             src={memorial.avatar}
             alt={memorial.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
+        ) : isPrivate ? (
+          <div className="w-full h-full flex flex-col items-center justify-center bg-memorial-800/90">
+            <Lock className="w-12 h-12 text-cream-200 mb-2" />
+            <span className="text-cream-200 text-sm">已加密</span>
+          </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Flower2 className="w-16 h-16 text-memorial-400" />
           </div>
         )}
-        {memorial.isPrivate && (
-          <div className="absolute top-3 right-3 bg-black/50 backdrop-blur-sm text-white px-2 py-1 rounded-full text-xs flex items-center gap-1">
-            <Lock className="w-3 h-3" />
-            私密
+        {isPrivate && (
+          <div className="absolute top-3 right-3 bg-memorial-900/80 backdrop-blur-sm text-white px-2.5 py-1 rounded-full text-xs flex items-center gap-1.5">
+            <Lock className="w-3.5 h-3.5" />
+            私密纪念
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+        {!isPrivate && <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />}
       </div>
 
       <div className="p-5">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-serif text-xl text-memorial-950 font-medium">
-            {memorial.name}
+          <h3 className={`font-serif text-xl font-medium ${isPrivate ? "text-memorial-500" : "text-memorial-950"}`}>
+            {isPrivate ? (
+              <span className="flex items-center gap-2">
+                <span className="w-4 h-4 bg-memorial-300 rounded-full" />
+                私密纪念页
+              </span>
+            ) : (
+              memorial.name
+            )}
           </h3>
         </div>
-        <p className="text-sm text-memorial-500 mb-3">
-          {formatDateShort(memorial.birthDate)} — {formatDateShort(memorial.deathDate)}
-        </p>
-        {memorial.epitaph && (
-          <p className="text-sm text-memorial-600 line-clamp-2 font-serif italic">
-            "{memorial.epitaph}"
+        {isPrivate ? (
+          <p className="text-sm text-memorial-400 mb-3">
+            输入密码后查看详情
           </p>
+        ) : (
+          <>
+            <p className="text-sm text-memorial-500 mb-3">
+              {formatDateShort(memorial.birthDate)} — {formatDateShort(memorial.deathDate)}
+            </p>
+            {memorial.epitaph && (
+              <p className="text-sm text-memorial-600 line-clamp-2 font-serif italic">
+                "{memorial.epitaph}"
+              </p>
+            )}
+          </>
         )}
         <div className="flex items-center gap-4 mt-4 pt-4 border-t border-memorial-100">
           <span className="text-xs text-memorial-400">
-            💐 {memorial.flowers.length} 献花
+            💐 {isPrivate ? "?" : memorial.flowers.length} 献花
           </span>
           <span className="text-xs text-memorial-400">
-            🕯️ {memorial.candles.length} 蜡烛
+            🕯️ {isPrivate ? "?" : memorial.candles.length} 蜡烛
           </span>
           <span className="text-xs text-memorial-400">
-            💬 {memorial.messages.length} 留言
+            💬 {isPrivate ? "?" : memorial.messages.length} 留言
           </span>
         </div>
       </div>
@@ -71,8 +93,7 @@ export default function Home() {
     loadMemorials();
   }, [loadMemorials]);
 
-  const filteredMemorials = searchQuery ? searchMemorials(searchQuery) : memorials;
-  const publicMemorials = filteredMemorials.filter((m) => !m.isPrivate);
+  const displayMemorials = searchQuery ? searchMemorials(searchQuery) : memorials;
 
   return (
     <div className="min-h-screen pb-20 md:pt-20">
@@ -150,9 +171,9 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          ) : publicMemorials.length > 0 ? (
+          ) : displayMemorials.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {publicMemorials.map((memorial, index) => (
+              {displayMemorials.map((memorial, index) => (
                 <MemorialCard key={memorial.id} memorial={memorial} index={index} />
               ))}
             </div>
