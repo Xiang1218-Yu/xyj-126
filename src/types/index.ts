@@ -39,6 +39,7 @@ export interface Memorial {
   candles: Candle[];
   isPrivate: boolean;
   password: string;
+  adminPassword: string;
   reminderEnabled: boolean;
   reminderDays: number;
   createdAt: string;

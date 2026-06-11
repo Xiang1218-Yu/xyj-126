@@ -5,9 +5,10 @@ import { Download, Share2, QrCode } from "lucide-react";
 interface QRCodeCardProps {
   url: string;
   name: string;
+  compact?: boolean;
 }
 
-export default function QRCodeCard({ url, name }: QRCodeCardProps) {
+export default function QRCodeCard({ url, name, compact = false }: QRCodeCardProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
 
   const downloadQRCode = () => {
@@ -36,6 +37,21 @@ export default function QRCodeCard({ url, name }: QRCodeCardProps) {
       alert("链接已复制到剪贴板");
     }
   };
+
+  if (compact) {
+    return (
+      <div ref={canvasRef} id="qr-code-canvas" className="w-full h-full flex items-center justify-center">
+        <QRCodeCanvas
+          value={url}
+          size={80}
+          level="M"
+          includeMargin={false}
+          fgColor="#1a3a2f"
+          bgColor="#ffffff"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm">

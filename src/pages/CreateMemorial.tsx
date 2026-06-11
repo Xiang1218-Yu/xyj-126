@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell } from "lucide-react";
+import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
 import { compressImage, hashPassword } from "@/utils";
 import type { Photo } from "@/types";
@@ -21,6 +21,7 @@ export default function CreateMemorial() {
     biography: "",
     isPrivate: false,
     password: "",
+    adminPassword: "",
     reminderEnabled: false,
     reminderDays: 7,
   });
@@ -46,6 +47,7 @@ export default function CreateMemorial() {
           biography: memorial.biography,
           isPrivate: memorial.isPrivate,
           password: "",
+          adminPassword: "",
           reminderEnabled: memorial.reminderEnabled,
           reminderDays: memorial.reminderDays,
         });
@@ -121,6 +123,9 @@ export default function CreateMemorial() {
     if (formData.isPrivate && !formData.password && !isEditing) {
       newErrors.password = "请设置访问密码";
     }
+    if (!formData.isPrivate && !formData.adminPassword && !isEditing) {
+      newErrors.adminPassword = "请设置管理密码";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -134,23 +139,39 @@ export default function CreateMemorial() {
     setIsSubmitting(true);
 
     try {
-      const passwordHash = formData.isPrivate && formData.password
-        ? await hashPassword(formData.password)
-        : isEditing
-        ? getMemorial(id!)?.password || ""
-        : "";
+      const existingMemorial = isEditing ? getMemorial(id!) : null;
+
+      let passwordHash = "";
+      if (formData.isPrivate) {
+        if (formData.password) {
+          passwordHash = await hashPassword(formData.password);
+        } else if (existingMemorial) {
+          passwordHash = existingMemorial.password;
+        }
+      }
+
+      let adminPasswordHash = "";
+      if (formData.adminPassword) {
+        adminPasswordHash = await hashPassword(formData.adminPassword);
+      } else if (formData.isPrivate && passwordHash) {
+        adminPasswordHash = passwordHash;
+      } else if (existingMemorial) {
+        adminPasswordHash = existingMemorial.adminPassword;
+      }
 
       if (isEditing && id) {
         updateMemorial(id, {
           ...formData,
           photos,
-          password: formData.isPrivate ? passwordHash : "",
+          password: passwordHash,
+          adminPassword: adminPasswordHash,
         });
       } else {
         const newMemorial = createMemorial({
           ...formData,
           photos,
           password: passwordHash,
+          adminPassword: adminPasswordHash,
         });
         navigate(`/memorial/${newMemorial.id}`);
         return;
@@ -354,17 +375,17 @@ export default function CreateMemorial() {
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h2 className="font-serif text-xl text-memorial-950 mb-6">隐私设置</h2>
+              <h2 className="font-serif text-xl text-memorial-950 mb-6">安全设置</h2>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-memorial-100 flex items-center justify-center">
                       <Lock className="w-5 h-5 text-memorial-600" />
                     </div>
                     <div>
-                      <p className="font-medium text-memorial-900">密码保护</p>
-                      <p className="text-sm text-memorial-500">开启后需要密码才能访问</p>
+                      <p className="font-medium text-memorial-900">私密访问</p>
+                      <p className="text-sm text-memorial-500">开启后需要密码才能查看内容</p>
                     </div>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -405,8 +426,45 @@ export default function CreateMemorial() {
                     {errors.password && (
                       <p className="text-red-500 text-sm mt-1">{errors.password}</p>
                     )}
+                    <p className="text-xs text-memorial-400 mt-2">
+                      访问密码同时可用于管理编辑
+                    </p>
                   </div>
                 )}
+
+                <div className="border-t border-memorial-100 pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-gold-100 flex items-center justify-center">
+                      <Settings className="w-5 h-5 text-gold-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-memorial-900">管理密码</p>
+                      <p className="text-sm text-memorial-500">用于编辑和删除纪念页</p>
+                    </div>
+                  </div>
+                  <div className="pl-13">
+                    <label className="block text-sm text-memorial-600 mb-2">
+                      管理密码 {!isEditing && !formData.isPrivate && <span className="text-candle-600">*</span>}
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.adminPassword}
+                      onChange={(e) => handleInputChange("adminPassword", e.target.value)}
+                      className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all ${
+                        errors.adminPassword ? "border-red-400" : "border-memorial-200"
+                      }`}
+                      placeholder={isEditing ? "留空则不修改密码" : "设置管理密码"}
+                    />
+                    {errors.adminPassword && (
+                      <p className="text-red-500 text-sm mt-1">{errors.adminPassword}</p>
+                    )}
+                    <p className="text-xs text-memorial-400 mt-2">
+                      {formData.isPrivate
+                        ? "如已设置访问密码，可留空与访问密码保持一致"
+                        : "建议设置管理密码以保护纪念页"}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
