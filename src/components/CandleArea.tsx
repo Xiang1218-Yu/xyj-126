@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Flame, Send } from "lucide-react";
 import type { Candle } from "@/types";
+import Danmaku from "./Danmaku";
 
 interface CandleAreaProps {
   candles: Candle[];
@@ -29,7 +30,9 @@ export default function CandleArea({ candles, onAddCandle }: CandleAreaProps) {
         <span className="text-memorial-500 text-sm">共 {candles.length} 盏烛</span>
       </div>
 
-      <div className="relative min-h-[180px] bg-gradient-to-b from-memorial-950/5 to-transparent rounded-xl p-6 mb-6">
+      <div className="relative min-h-[180px] bg-gradient-to-b from-memorial-950/5 to-transparent rounded-xl p-6 mb-6 overflow-hidden">
+        <Danmaku items={candles} variant="candle" />
+
         <div className="flex flex-wrap justify-center gap-4">
           {displayCandles.map((candle, index) => (
             <div

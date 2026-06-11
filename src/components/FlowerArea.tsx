@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Send, Flower2 } from "lucide-react";
 import { getFlowerEmoji } from "@/utils";
 import type { Flower } from "@/types";
+import Danmaku from "./Danmaku";
 
 const FLOWER_TYPES = [
   { id: "chrysanthemum", name: "菊花", emoji: "🌼" },
@@ -45,6 +46,8 @@ export default function FlowerArea({ flowers, onAddFlower }: FlowerAreaProps) {
       </div>
 
       <div className="relative min-h-[160px] bg-gradient-to-b from-memorial-50 to-cream-100 rounded-xl p-6 mb-6 overflow-hidden">
+        <Danmaku items={flowers} variant="flower" />
+
         <div className="flex flex-wrap justify-center gap-2">
           {displayFlowers.map((flower, index) => (
             <div
