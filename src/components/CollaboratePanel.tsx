@@ -53,7 +53,7 @@ export default function CollaboratePanel({
   };
 
   const inviteUrl = (token: string) =>
-    `${window.location.origin}/#/invite/${token}`;
+    `${window.location.origin}/invite/${token}`;
 
   const handleCopyLink = async (token: string) => {
     const url = inviteUrl(token);
