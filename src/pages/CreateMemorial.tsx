@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus, AlertCircle, CheckCircle } from "lucide-react";
+import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus, AlertCircle, CheckCircle, Palette } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
 import { compressImage, hashPassword, formatDateShort, verifyPassword } from "@/utils";
-import type { Photo, RelationType, Gender } from "@/types";
+import type { Photo, RelationType, Gender, VisualTheme } from "@/types";
 import { RELATION_LABELS } from "@/types";
+import { THEME_LIST } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
 export default function CreateMemorial() {
   const navigate = useNavigate();
@@ -36,6 +38,7 @@ export default function CreateMemorial() {
     adminPassword: "",
     reminderEnabled: false,
     reminderDays: 7,
+    theme: "default" as VisualTheme,
   });
 
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -76,6 +79,7 @@ export default function CreateMemorial() {
           adminPassword: "",
           reminderEnabled: memorial.reminderEnabled,
           reminderDays: memorial.reminderDays,
+          theme: memorial.theme ?? "default",
         });
         setPhotos(memorial.photos);
 
@@ -705,6 +709,71 @@ export default function CreateMemorial() {
                     </select>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-memorial-100 flex items-center justify-center">
+                    <Palette className="w-5 h-5 text-memorial-600" />
+                  </div>
+                  <div>
+                    <h2 className="font-serif text-xl text-memorial-950">视觉主题</h2>
+                    <p className="text-sm text-memorial-500">为纪念页选择合适的视觉风格</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                {THEME_LIST.map((t) => {
+                  const isActive = formData.theme === t.id;
+                  const isStarry = t.id === "starry";
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => handleInputChange("theme", t.id as VisualTheme)}
+                      className={cn(
+                        "relative p-4 rounded-xl border-2 transition-all text-center flex flex-col items-center gap-2",
+                        isActive
+                          ? "border-memorial-600 bg-memorial-50 ring-2 ring-memorial-400/40"
+                          : "border-memorial-200 hover:border-memorial-400"
+                      )}
+                      style={{ background: isActive ? undefined : t.cardBg }}
+                    >
+                      <span className="text-3xl">{t.icon}</span>
+                      <div className="text-center">
+                        <p
+                          className={cn(
+                            "font-medium text-sm",
+                            isStarry ? "text-gray-100" : "text-memorial-800"
+                          )}
+                        >
+                          {t.name}
+                        </p>
+                        <p
+                          className={cn(
+                            "text-xs mt-0.5 leading-tight",
+                            isStarry ? "text-gray-400" : "text-memorial-500"
+                          )}
+                        >
+                          {t.description}
+                        </p>
+                      </div>
+                      {isActive && (
+                        <div className={cn(
+                          "absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-white",
+                          isStarry ? "bg-purple-500" : "bg-memorial-600"
+                        )}>
+                          <svg viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

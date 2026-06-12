@@ -133,7 +133,7 @@ export function ThemeParticles({ theme }: ThemeParticlesProps) {
 }
 
 interface ThemePasswordModalProps {
-  onSubmit: (password: string) => void;
+  onSubmit: (password: string) => Promise<boolean>;
   onCancel: () => void;
   theme: VisualTheme;
 }
@@ -141,14 +141,21 @@ interface ThemePasswordModalProps {
 function ThemePasswordModal({ onSubmit, onCancel, theme }: ThemePasswordModalProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
       setError("请输入管理密码");
       return;
     }
-    onSubmit(password);
+    setIsSubmitting(true);
+    setError("");
+    const isValid = await onSubmit(password);
+    if (!isValid) {
+      setError("密码错误，请重试");
+    }
+    setIsSubmitting(false);
   };
 
   const isStarry = theme === "starry";
@@ -205,12 +212,13 @@ function ThemePasswordModal({ onSubmit, onCancel, theme }: ThemePasswordModalPro
             </button>
             <button
               type="submit"
+              disabled={isSubmitting || !password.trim()}
               className={cn(
-                "flex-1 py-3 text-white rounded-xl transition-colors text-sm font-medium",
+                "flex-1 py-3 text-white rounded-xl transition-colors text-sm font-medium disabled:opacity-50",
                 isStarry ? "bg-purple-600 hover:bg-purple-500" : "bg-memorial-700 hover:bg-memorial-600"
               )}
             >
-              确认
+              {isSubmitting ? "验证中..." : "确认"}
             </button>
           </div>
         </form>
@@ -253,15 +261,15 @@ export default function ThemeSelector({
     }
   };
 
-  const handlePasswordSubmit = (password: string) => {
-    const isValid = verifyPassword(password, adminPasswordHash);
+  const handlePasswordSubmit = async (password: string): Promise<boolean> => {
+    const isValid = await verifyPassword(password, adminPasswordHash);
     if (isValid && pendingTheme) {
       setMemorialTheme(memorialId, pendingTheme);
       setPendingTheme(null);
       setShowPasswordModal(false);
-    } else {
-      alert("密码错误");
+      return true;
     }
+    return false;
   };
 
   return (
