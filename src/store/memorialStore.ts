@@ -1,12 +1,16 @@
 import { create } from "zustand";
-import type { Memorial, Photo, Message, Flower, Candle } from "@/types";
+import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType } from "@/types";
+import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
 import { generateId, hashPassword } from "@/utils";
 
 interface MemorialState {
   memorials: Memorial[];
+  familyRelations: FamilyRelation[];
   isLoaded: boolean;
   loadMemorials: () => void;
   saveMemorials: () => void;
+  loadFamilyRelations: () => void;
+  saveFamilyRelations: () => void;
   createMemorial: (data: Partial<Memorial>) => Memorial;
   updateMemorial: (id: string, data: Partial<Memorial>) => void;
   deleteMemorial: (id: string) => void;
@@ -18,9 +22,15 @@ interface MemorialState {
   addCandle: (memorialId: string, candle: Omit<Candle, "id" | "createdAt">) => void;
   searchMemorials: (query: string) => Memorial[];
   resetToSampleData: () => Promise<void>;
+  addFamilyRelation: (fromId: string, toId: string, relation: RelationType, note?: string) => FamilyRelation | null;
+  removeFamilyRelation: (relationId: string) => void;
+  getRelationsForMemorial: (memorialId: string) => Array<{ relation: FamilyRelation; otherMemorial: Memorial; label: string }>;
+  getRelatedMemorials: (memorialId: string) => Memorial[];
+  getAllFamilyRelations: () => FamilyRelation[];
 }
 
 const STORAGE_KEY = "memorial_memorials";
+const RELATIONS_STORAGE_KEY = "memorial_family_relations";
 
 const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
   name: "",
@@ -42,6 +52,7 @@ const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
 
 export const useMemorialStore = create<MemorialState>((set, get) => ({
   memorials: [],
+  familyRelations: [],
   isLoaded: false,
 
   loadMemorials: () => {
@@ -67,10 +78,36 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
     })();
   },
 
+  loadFamilyRelations: () => {
+    try {
+      const stored = localStorage.getItem(RELATIONS_STORAGE_KEY);
+      if (stored) {
+        set({ familyRelations: JSON.parse(stored) });
+      } else {
+        const sampleRelations = getSampleFamilyRelations();
+        set({ familyRelations: sampleRelations });
+        localStorage.setItem(RELATIONS_STORAGE_KEY, JSON.stringify(sampleRelations));
+      }
+    } catch (error) {
+      console.error("Failed to load family relations:", error);
+    }
+  },
+
+  saveFamilyRelations: () => {
+    try {
+      const { familyRelations } = get();
+      localStorage.setItem(RELATIONS_STORAGE_KEY, JSON.stringify(familyRelations));
+    } catch (error) {
+      console.error("Failed to save family relations:", error);
+    }
+  },
+
   resetToSampleData: async () => {
     const sampleData = await getSampleMemorials();
-    set({ memorials: sampleData, isLoaded: true });
+    const sampleRelations = getSampleFamilyRelations();
+    set({ memorials: sampleData, familyRelations: sampleRelations, isLoaded: true });
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
+    localStorage.setItem(RELATIONS_STORAGE_KEY, JSON.stringify(sampleRelations));
   },
 
   saveMemorials: () => {
@@ -112,8 +149,12 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
   deleteMemorial: (id) => {
     set((state) => ({
       memorials: state.memorials.filter((m) => m.id !== id),
+      familyRelations: state.familyRelations.filter(
+        (r) => r.fromMemorialId !== id && r.toMemorialId !== id
+      ),
     }));
     get().saveMemorials();
+    get().saveFamilyRelations();
   },
 
   getMemorial: (id) => {
@@ -219,6 +260,96 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
         m.name.toLowerCase().includes(lowerQuery) ||
         m.epitaph.toLowerCase().includes(lowerQuery)
     );
+  },
+
+  addFamilyRelation: (fromId, toId, relation, note) => {
+    if (fromId === toId) return null;
+    const { familyRelations, memorials } = get();
+    const exists = familyRelations.some(
+      (r) =>
+        (r.fromMemorialId === fromId && r.toMemorialId === toId) ||
+        (r.fromMemorialId === toId && r.toMemorialId === fromId)
+    );
+    if (exists) return null;
+
+    const fromMemorial = memorials.find((m) => m.id === fromId);
+    const toMemorial = memorials.find((m) => m.id === toId);
+    if (!fromMemorial || !toMemorial) return null;
+
+    const newRelation: FamilyRelation = {
+      id: generateId(),
+      fromMemorialId: fromId,
+      toMemorialId: toId,
+      relation,
+      note,
+      createdAt: new Date().toISOString(),
+    };
+
+    set((state) => ({
+      familyRelations: [...state.familyRelations, newRelation],
+    }));
+    get().saveFamilyRelations();
+    return newRelation;
+  },
+
+  removeFamilyRelation: (relationId) => {
+    set((state) => ({
+      familyRelations: state.familyRelations.filter((r) => r.id !== relationId),
+    }));
+    get().saveFamilyRelations();
+  },
+
+  getRelationsForMemorial: (memorialId) => {
+    const { familyRelations, memorials } = get();
+    const result: Array<{ relation: FamilyRelation; otherMemorial: Memorial; label: string }> = [];
+
+    for (const r of familyRelations) {
+      let otherId: string | null = null;
+      let label: string | null = null;
+
+      if (r.fromMemorialId === memorialId) {
+        otherId = r.toMemorialId;
+        label = RELATION_LABELS[r.relation];
+      } else if (r.toMemorialId === memorialId) {
+        otherId = r.fromMemorialId;
+        const fromMemorial = memorials.find((m) => m.id === r.fromMemorialId);
+        if (fromMemorial) {
+          const gender = fromMemorial.name.includes("公") || fromMemorial.name.includes("爷") || fromMemorial.name.includes("山") ? "male" : "female";
+          const inverse = INVERSE_RELATIONS[r.relation][gender as "male" | "female"];
+          label = RELATION_LABELS[inverse];
+        } else {
+          label = RELATION_LABELS[r.relation];
+        }
+      }
+
+      if (otherId && label) {
+        const otherMemorial = memorials.find((m) => m.id === otherId);
+        if (otherMemorial) {
+          result.push({ relation: r, otherMemorial, label });
+        }
+      }
+    }
+
+    return result;
+  },
+
+  getRelatedMemorials: (memorialId) => {
+    const { familyRelations, memorials } = get();
+    const relatedIds = new Set<string>();
+
+    for (const r of familyRelations) {
+      if (r.fromMemorialId === memorialId) {
+        relatedIds.add(r.toMemorialId);
+      } else if (r.toMemorialId === memorialId) {
+        relatedIds.add(r.fromMemorialId);
+      }
+    }
+
+    return memorials.filter((m) => relatedIds.has(m.id));
+  },
+
+  getAllFamilyRelations: () => {
+    return get().familyRelations;
   },
 }));
 
@@ -350,4 +481,26 @@ async function migrateMemorials(memorials: Memorial[]): Promise<Memorial[]> {
     ...m,
     adminPassword: m.adminPassword ?? "",
   }));
+}
+
+function getSampleFamilyRelations(): FamilyRelation[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: "rel-001",
+      fromMemorialId: "sample-001",
+      toMemorialId: "sample-002",
+      relation: "spouse",
+      note: "夫妻",
+      createdAt: now,
+    },
+    {
+      id: "rel-002",
+      fromMemorialId: "sample-001",
+      toMemorialId: "sample-003",
+      relation: "father",
+      note: "父子",
+      createdAt: now,
+    },
+  ];
 }

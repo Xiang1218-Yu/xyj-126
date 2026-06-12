@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, PlusCircle, Bell, Leaf } from "lucide-react";
+import { Home, PlusCircle, Bell, Leaf, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Navbar() {
@@ -7,6 +7,7 @@ export default function Navbar() {
 
   const navItems = [
     { path: "/", label: "首页", icon: Home },
+    { path: "/family-network", label: "亲属", icon: Users },
     { path: "/create", label: "创建", icon: PlusCircle },
     { path: "/reminders", label: "提醒", icon: Bell },
   ];

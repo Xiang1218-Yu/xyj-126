@@ -1,14 +1,25 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings } from "lucide-react";
+import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
-import { compressImage, hashPassword } from "@/utils";
-import type { Photo } from "@/types";
+import { compressImage, hashPassword, formatDateShort } from "@/utils";
+import type { Photo, RelationType, FamilyRelation, Memorial } from "@/types";
+import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
 
 export default function CreateMemorial() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { createMemorial, updateMemorial, getMemorial, loadMemorials } = useMemorialStore();
+  const {
+    createMemorial,
+    updateMemorial,
+    getMemorial,
+    loadMemorials,
+    loadFamilyRelations,
+    addFamilyRelation,
+    removeFamilyRelation,
+    memorials,
+    familyRelations,
+  } = useMemorialStore();
   const isEditing = !!id;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -29,10 +40,16 @@ export default function CreateMemorial() {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [newRelation, setNewRelation] = useState({
+    toMemorialId: "",
+    relation: "spouse" as RelationType,
+    note: "",
+  });
 
   useEffect(() => {
     loadMemorials();
-  }, [loadMemorials]);
+    loadFamilyRelations();
+  }, [loadMemorials, loadFamilyRelations]);
 
   useEffect(() => {
     if (isEditing && id) {
@@ -55,6 +72,47 @@ export default function CreateMemorial() {
       }
     }
   }, [id, getMemorial, isEditing]);
+
+  const currentRelations = useMemo(() => {
+    if (!isEditing || !id) return [];
+
+    const result: Array<{ relation: FamilyRelation; otherMemorial: Memorial; label: string }> = [];
+
+    for (const r of familyRelations) {
+      let otherId: string | null = null;
+      let label: string | null = null;
+
+      if (r.fromMemorialId === id) {
+        otherId = r.toMemorialId;
+        label = RELATION_LABELS[r.relation];
+      } else if (r.toMemorialId === id) {
+        otherId = r.fromMemorialId;
+        const fromMemorial = memorials.find((m) => m.id === r.fromMemorialId);
+        if (fromMemorial) {
+          const gender = fromMemorial.name.includes("公") || fromMemorial.name.includes("爷") || fromMemorial.name.includes("山") ? "male" : "female";
+          const inverse = INVERSE_RELATIONS[r.relation][gender as "male" | "female"];
+          label = RELATION_LABELS[inverse];
+        } else {
+          label = RELATION_LABELS[r.relation];
+        }
+      }
+
+      if (otherId && label) {
+        const otherMemorial = memorials.find((m) => m.id === otherId);
+        if (otherMemorial) {
+          result.push({ relation: r, otherMemorial, label });
+        }
+      }
+    }
+
+    return result;
+  }, [isEditing, id, familyRelations, memorials]);
+
+  const availableMemorials = useMemo(() => {
+    return memorials.filter(
+      (m) => !m.isPrivate && m.id !== id && !currentRelations.some((r) => r.otherMemorial.id === m.id)
+    );
+  }, [memorials, id, currentRelations]);
 
   const handleInputChange = (field: string, value: string | boolean | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -106,6 +164,18 @@ export default function CreateMemorial() {
 
   const removePhoto = (photoId: string) => {
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
+  };
+
+  const handleAddRelation = () => {
+    if (!id || !newRelation.toMemorialId) return;
+    const result = addFamilyRelation(id, newRelation.toMemorialId, newRelation.relation, newRelation.note);
+    if (result) {
+      setNewRelation({ toMemorialId: "", relation: "spouse", note: "" });
+    }
+  };
+
+  const handleRemoveRelation = (relationId: string) => {
+    removeFamilyRelation(relationId);
   };
 
   const validate = (): boolean => {
@@ -521,6 +591,133 @@ export default function CreateMemorial() {
                 )}
               </div>
             </div>
+
+            {isEditing && (
+              <div className="bg-white rounded-2xl p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-memorial-100 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-memorial-600" />
+                    </div>
+                    <div>
+                      <h2 className="font-serif text-xl text-memorial-950">亲属关系</h2>
+                      <p className="text-sm text-memorial-500">管理与其他纪念页的亲属关系</p>
+                    </div>
+                  </div>
+                </div>
+
+                {currentRelations.length > 0 && (
+                  <div className="mb-6">
+                    <h3 className="text-sm font-medium text-memorial-700 mb-3">已关联的亲属</h3>
+                    <div className="space-y-2">
+                      {currentRelations.map(({ relation, otherMemorial, label }) => (
+                        <div
+                          key={relation.id}
+                          className="flex items-center justify-between bg-memorial-50 rounded-xl p-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-memorial-200 flex items-center justify-center font-serif text-memorial-700">
+                              {otherMemorial.name.charAt(0)}
+                            </div>
+                            <div>
+                              <Link
+                                to={`/memorial/${otherMemorial.id}`}
+                                className="font-medium text-memorial-800 hover:text-memorial-600"
+                              >
+                                {otherMemorial.name}
+                              </Link>
+                              <p className="text-sm text-memorial-500">{label}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRelation(relation.id)}
+                            className="p-2 rounded-lg hover:bg-red-100 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4 text-memorial-400 hover:text-red-500" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="border-t border-memorial-100 pt-6">
+                  <h3 className="text-sm font-medium text-memorial-700 mb-4">添加亲属关系</h3>
+                  {availableMemorials.length > 0 ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm text-memorial-600 mb-2">选择亲属</label>
+                        <select
+                          value={newRelation.toMemorialId}
+                          onChange={(e) => setNewRelation((prev) => ({ ...prev, toMemorialId: e.target.value }))}
+                          className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
+                        >
+                          <option value="">请选择要关联的纪念页</option>
+                          {availableMemorials.map((m) => (
+                            <option key={m.id} value={m.id}>
+                              {m.name} ({formatDateShort(m.birthDate)} - {formatDateShort(m.deathDate)})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-memorial-600 mb-2">亲属关系</label>
+                        <select
+                          value={newRelation.relation}
+                          onChange={(e) => setNewRelation((prev) => ({ ...prev, relation: e.target.value as RelationType }))}
+                          className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
+                        >
+                          {Object.entries(RELATION_LABELS).map(([key, label]) => (
+                            <option key={key} value={key}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm text-memorial-600 mb-2">备注（可选）</label>
+                        <input
+                          type="text"
+                          value={newRelation.note}
+                          onChange={(e) => setNewRelation((prev) => ({ ...prev, note: e.target.value }))}
+                          placeholder="例如：父亲的弟弟"
+                          className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddRelation}
+                        disabled={!newRelation.toMemorialId}
+                        className="w-full inline-flex items-center justify-center gap-2 bg-memorial-100 text-memorial-700 py-3 rounded-xl hover:bg-memorial-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Plus className="w-4 h-4" />
+                        添加亲属关系
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-memorial-50 rounded-xl">
+                      <Users className="w-12 h-12 text-memorial-300 mx-auto mb-3" />
+                      <p className="text-memorial-500 text-sm">
+                        {memorials.length <= 1
+                          ? "暂无其他纪念页可关联，请先创建更多纪念页"
+                          : "已与所有公开纪念页建立关联"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-memorial-100">
+                  <Link
+                    to="/family-network"
+                    className="inline-flex items-center gap-2 text-sm text-memorial-600 hover:text-memorial-800"
+                  >
+                    <Users className="w-4 h-4" />
+                    查看亲属关系网络图
+                  </Link>
+                </div>
+              </div>
+            )}
 
             <div className="flex gap-4">
               <Link

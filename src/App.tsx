@@ -4,6 +4,7 @@ import Home from "@/pages/Home";
 import CreateMemorial from "@/pages/CreateMemorial";
 import MemorialDetail from "@/pages/MemorialDetail";
 import Reminders from "@/pages/Reminders";
+import FamilyNetwork from "@/pages/FamilyNetwork";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/family-network" element={<FamilyNetwork />} />
             <Route path="/create" element={<CreateMemorial />} />
             <Route path="/edit/:id" element={<CreateMemorial />} />
             <Route path="/memorial/:id" element={<MemorialDetail />} />
