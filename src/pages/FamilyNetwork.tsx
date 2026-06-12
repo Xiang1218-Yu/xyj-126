@@ -48,18 +48,30 @@ export default function FamilyNetwork() {
     const centerY = height / 2;
 
     const publicMemorials = memorials.filter((m) => !m.isPrivate);
+    const publicIds = new Set(publicMemorials.map((m) => m.id));
+
+    for (const id of Array.from(nodesRef.current.keys())) {
+      if (!publicIds.has(id)) {
+        nodesRef.current.delete(id);
+      }
+    }
 
     publicMemorials.forEach((memorial, i) => {
-      const angle = (2 * Math.PI * i) / Math.max(publicMemorials.length, 1);
-      const radius = 150 + Math.min(publicMemorials.length * 10, 100);
-      nodesRef.current.set(memorial.id, {
-        id: memorial.id,
-        x: centerX + radius * Math.cos(angle),
-        y: centerY + radius * Math.sin(angle),
-        vx: 0,
-        vy: 0,
-        memorial,
-      });
+      const existing = nodesRef.current.get(memorial.id);
+      if (existing) {
+        existing.memorial = memorial;
+      } else {
+        const angle = (2 * Math.PI * i) / Math.max(publicMemorials.length, 1);
+        const radius = 150 + Math.min(publicMemorials.length * 10, 100);
+        nodesRef.current.set(memorial.id, {
+          id: memorial.id,
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle),
+          vx: 0,
+          vy: 0,
+          memorial,
+        });
+      }
     });
 
     edgesRef.current = familyRelations
@@ -77,6 +89,7 @@ export default function FamilyNetwork() {
 
   useEffect(() => {
     initNodes();
+    forceUpdate((n) => n + 1);
   }, [initNodes]);
 
   useEffect(() => {
@@ -179,6 +192,7 @@ export default function FamilyNetwork() {
       node.y = y;
       node.vx = 0;
       node.vy = 0;
+      forceUpdate((n) => n + 1);
     }
   };
 
@@ -350,7 +364,6 @@ export default function FamilyNetwork() {
                             strokeWidth="2"
                             strokeOpacity="0.6"
                             strokeDasharray="none"
-                            className="transition-all duration-300"
                           />
                           <g
                             transform={`translate(${getLabelPosition(edge).x}, ${getLabelPosition(edge).y})`}

@@ -606,8 +606,7 @@ export default function CreateMemorial() {
               </div>
             </div>
 
-            {isEditing && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-memorial-100 flex items-center justify-center">
@@ -620,106 +619,120 @@ export default function CreateMemorial() {
                   </div>
                 </div>
 
-                {currentRelations.length > 0 && (
-                  <div className="mb-6">
-                    <h3 className="text-sm font-medium text-memorial-700 mb-3">已关联的亲属</h3>
-                    <div className="space-y-2">
-                      {currentRelations.map(({ relation, otherMemorial, label }) => (
-                        <div
-                          key={relation.id}
-                          className="flex items-center justify-between bg-memorial-50 rounded-xl p-3"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-memorial-200 flex items-center justify-center font-serif text-memorial-700">
-                              {otherMemorial.name.charAt(0)}
-                            </div>
-                            <div>
-                              <Link
-                                to={`/memorial/${otherMemorial.id}`}
-                                className="font-medium text-memorial-800 hover:text-memorial-600"
+                {isEditing ? (
+                  <>
+                    {currentRelations.length > 0 && (
+                      <div className="mb-6">
+                        <h3 className="text-sm font-medium text-memorial-700 mb-3">已关联的亲属</h3>
+                        <div className="space-y-2">
+                          {currentRelations.map(({ relation, otherMemorial, label }) => (
+                            <div
+                              key={relation.id}
+                              className="flex items-center justify-between bg-memorial-50 rounded-xl p-3"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-memorial-200 flex items-center justify-center font-serif text-memorial-700">
+                                  {otherMemorial.name.charAt(0)}
+                                </div>
+                                <div>
+                                  <Link
+                                    to={`/memorial/${otherMemorial.id}`}
+                                    className="font-medium text-memorial-800 hover:text-memorial-600"
+                                  >
+                                    {otherMemorial.name}
+                                  </Link>
+                                  <p className="text-sm text-memorial-500">{label}</p>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRelation(relation.id)}
+                                className="p-2 rounded-lg hover:bg-red-100 transition-colors"
                               >
-                                {otherMemorial.name}
-                              </Link>
-                              <p className="text-sm text-memorial-500">{label}</p>
+                                <Trash2 className="w-4 h-4 text-memorial-400 hover:text-red-500" />
+                              </button>
                             </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="border-t border-memorial-100 pt-6">
+                      <h3 className="text-sm font-medium text-memorial-700 mb-4">添加亲属关系</h3>
+                      {availableMemorials.length > 0 ? (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm text-memorial-600 mb-2">选择亲属</label>
+                            <select
+                              value={newRelation.toMemorialId}
+                              onChange={(e) => setNewRelation((prev) => ({ ...prev, toMemorialId: e.target.value }))}
+                              className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
+                            >
+                              <option value="">请选择要关联的纪念页</option>
+                              {availableMemorials.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                  {m.name} ({formatDateShort(m.birthDate)} - {formatDateShort(m.deathDate)})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm text-memorial-600 mb-2">亲属关系</label>
+                            <select
+                              value={newRelation.relation}
+                              onChange={(e) => setNewRelation((prev) => ({ ...prev, relation: e.target.value as RelationType }))}
+                              className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
+                            >
+                              {Object.entries(RELATION_LABELS).map(([key, label]) => (
+                                <option key={key} value={key}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm text-memorial-600 mb-2">备注（可选）</label>
+                            <input
+                              type="text"
+                              value={newRelation.note}
+                              onChange={(e) => setNewRelation((prev) => ({ ...prev, note: e.target.value }))}
+                              placeholder="例如：父亲的弟弟"
+                              className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
+                            />
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleRemoveRelation(relation.id)}
-                            className="p-2 rounded-lg hover:bg-red-100 transition-colors"
+                            onClick={handleAddRelation}
+                            disabled={!newRelation.toMemorialId}
+                            className="w-full inline-flex items-center justify-center gap-2 bg-memorial-100 text-memorial-700 py-3 rounded-xl hover:bg-memorial-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Trash2 className="w-4 h-4 text-memorial-400 hover:text-red-500" />
+                            <Plus className="w-4 h-4" />
+                            添加亲属关系
                           </button>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="text-center py-8 bg-memorial-50 rounded-xl">
+                          <Users className="w-12 h-12 text-memorial-300 mx-auto mb-3" />
+                          <p className="text-memorial-500 text-sm">
+                            {memorials.length <= 1
+                              ? "暂无其他纪念页可关联，请先创建更多纪念页"
+                              : "已与所有公开纪念页建立关联"}
+                          </p>
+                        </div>
+                      )}
                     </div>
+                  </>
+                ) : (
+                  <div className="text-center py-8 bg-memorial-50 rounded-xl">
+                    <Users className="w-12 h-12 text-memorial-300 mx-auto mb-3" />
+                    <p className="text-memorial-600 text-sm mb-2">
+                      保存纪念页后可添加亲属关系
+                    </p>
+                    <p className="text-memorial-400 text-xs">
+                      创建成功后，在编辑页面管理亲属关系
+                    </p>
                   </div>
                 )}
-
-                <div className="border-t border-memorial-100 pt-6">
-                  <h3 className="text-sm font-medium text-memorial-700 mb-4">添加亲属关系</h3>
-                  {availableMemorials.length > 0 ? (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm text-memorial-600 mb-2">选择亲属</label>
-                        <select
-                          value={newRelation.toMemorialId}
-                          onChange={(e) => setNewRelation((prev) => ({ ...prev, toMemorialId: e.target.value }))}
-                          className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
-                        >
-                          <option value="">请选择要关联的纪念页</option>
-                          {availableMemorials.map((m) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name} ({formatDateShort(m.birthDate)} - {formatDateShort(m.deathDate)})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm text-memorial-600 mb-2">亲属关系</label>
-                        <select
-                          value={newRelation.relation}
-                          onChange={(e) => setNewRelation((prev) => ({ ...prev, relation: e.target.value as RelationType }))}
-                          className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
-                        >
-                          {Object.entries(RELATION_LABELS).map(([key, label]) => (
-                            <option key={key} value={key}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm text-memorial-600 mb-2">备注（可选）</label>
-                        <input
-                          type="text"
-                          value={newRelation.note}
-                          onChange={(e) => setNewRelation((prev) => ({ ...prev, note: e.target.value }))}
-                          placeholder="例如：父亲的弟弟"
-                          className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddRelation}
-                        disabled={!newRelation.toMemorialId}
-                        className="w-full inline-flex items-center justify-center gap-2 bg-memorial-100 text-memorial-700 py-3 rounded-xl hover:bg-memorial-200 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Plus className="w-4 h-4" />
-                        添加亲属关系
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 bg-memorial-50 rounded-xl">
-                      <Users className="w-12 h-12 text-memorial-300 mx-auto mb-3" />
-                      <p className="text-memorial-500 text-sm">
-                        {memorials.length <= 1
-                          ? "暂无其他纪念页可关联，请先创建更多纪念页"
-                          : "已与所有公开纪念页建立关联"}
-                      </p>
-                    </div>
-                  )}
-                </div>
 
                 <div className="mt-6 pt-4 border-t border-memorial-100">
                   <Link
@@ -731,7 +744,6 @@ export default function CreateMemorial() {
                   </Link>
                 </div>
               </div>
-            )}
 
             <div className="flex gap-4">
               <Link
