@@ -337,3 +337,435 @@ body {
 .theme-starry .theme-hover-bg {
   background-color: rgba(58, 74, 112, 0.6);
 }
+
+.ritual-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: radial-gradient(ellipse at center, rgba(26, 58, 47, 0.95) 0%, rgba(10, 20, 15, 0.98) 100%);
+  backdrop-filter: blur(8px);
+}
+
+.ritual-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ritual-bg-ambient {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ritual-light-ray {
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  width: 200%;
+  height: 140%;
+  background: radial-gradient(ellipse at 50% 0%, rgba(201, 169, 98, 0.12) 0%, transparent 60%);
+  transform: translateX(-50%);
+  animation: lightRay 8s ease-in-out infinite;
+}
+
+@keyframes lightRay {
+  0%, 100% { opacity: 0.6; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.05); }
+}
+
+.ritual-incense-smoke {
+  position: absolute;
+  bottom: 30%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  filter: blur(3px);
+  animation: smokeRise 4s ease-out infinite;
+}
+
+.ritual-incense-smoke:nth-child(2) {
+  left: calc(50% - 20px);
+  animation-delay: 0.5s;
+}
+
+.ritual-incense-smoke:nth-child(3) {
+  left: calc(50% + 20px);
+  animation-delay: 1s;
+}
+
+@keyframes smokeRise {
+  0% {
+    transform: translateY(0) translateX(0) scale(1);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateY(-200px) translateX(30px) scale(8);
+    opacity: 0;
+  }
+}
+
+.ritual-step-indicator {
+  position: relative;
+  width: 100%;
+}
+
+.ritual-progress-track {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 1px;
+}
+
+.ritual-progress-fill {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #c9a962, #e8a87c);
+  border-radius: 1px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 10px rgba(201, 169, 98, 0.5);
+}
+
+.ritual-step-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 40, 30, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  transition: all 0.4s ease;
+  position: relative;
+  z-index: 2;
+}
+
+.ritual-step-dot.active {
+  background: linear-gradient(135deg, #c9a962, #e8a87c);
+  border-color: #f3eed9;
+  color: #1a3a2f;
+  box-shadow: 0 0 20px rgba(201, 169, 98, 0.6), 0 0 40px rgba(232, 168, 124, 0.3);
+  transform: scale(1.15);
+}
+
+.ritual-step-dot.completed {
+  background: linear-gradient(135deg, #55644a, #6f7e61);
+  border-color: #8f9c82;
+  color: #faf7f0;
+}
+
+.ritual-step-dot.completed::after {
+  content: "✓";
+  font-size: 14px;
+  color: #faf7f0;
+}
+
+.ritual-step-dot.completed span {
+  display: none;
+}
+
+.ritual-step-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  transition: color 0.4s ease;
+  white-space: nowrap;
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ritual-step-label.active {
+  color: #f3eed9;
+  font-weight: 500;
+}
+
+.ritual-step-label.completed {
+  color: #8f9c82;
+}
+
+.ritual-main-card {
+  background: linear-gradient(145deg, rgba(40, 65, 50, 0.7) 0%, rgba(26, 50, 38, 0.85) 100%);
+  border: 1px solid rgba(201, 169, 98, 0.25);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.ritual-icon-container {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(201, 169, 98, 0.15) 0%, transparent 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.ritual-icon-container::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1px dashed rgba(201, 169, 98, 0.3);
+  animation: rotateSlow 20s linear infinite;
+}
+
+@keyframes rotateSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.ritual-icon-emoji {
+  font-size: 48px;
+  animation: ritualIconPulse 3s ease-in-out infinite;
+}
+
+@keyframes ritualIconPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(201, 169, 98, 0.4)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 20px rgba(201, 169, 98, 0.7)); }
+}
+
+.ritual-incense-stick {
+  position: relative;
+  width: 4px;
+  height: 80px;
+  background: linear-gradient(to top, #8B4513, #A0522D);
+  border-radius: 2px;
+  transform-origin: bottom center;
+}
+
+.ritual-incense-stick::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle, #ff6b35 0%, #ff4500 40%, transparent 70%);
+  border-radius: 50%;
+  animation: emberGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes emberGlow {
+  0%, 100% { opacity: 0.8; box-shadow: 0 0 8px #ff6b35, 0 0 16px #ff4500; }
+  50% { opacity: 1; box-shadow: 0 0 12px #ff6b35, 0 0 24px #ff4500, 0 0 32px rgba(255, 69, 0, 0.5); }
+}
+
+.ritual-bow-figure {
+  font-size: 80px;
+  transform-origin: bottom center;
+  animation: bowMotion 2s ease-in-out;
+}
+
+@keyframes bowMotion {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  20% { transform: rotate(0deg) translateY(0); }
+  50% { transform: rotate(45deg) translateY(15px); }
+  80% { transform: rotate(0deg) translateY(0); }
+}
+
+.ritual-wine-cup {
+  font-size: 80px;
+  animation: toastMotion 2s ease-in-out;
+}
+
+@keyframes toastMotion {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-30px) rotate(-10deg); }
+  50% { transform: translateY(-40px) rotate(15deg); opacity: 1; }
+  60% { transform: translateY(-20px) rotate(0deg); opacity: 0.7; }
+  70% { transform: translateY(0) rotate(0deg); opacity: 1; }
+}
+
+.ritual-prayer-beads {
+  font-size: 80px;
+  animation: beadsRotate 4s linear infinite;
+}
+
+@keyframes beadsRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.ritual-offering-item {
+  font-size: 40px;
+  animation: offeringAppear 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  opacity: 0;
+  transform: translateY(40px) scale(0.5);
+}
+
+@keyframes offeringAppear {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ritual-chanting-line {
+  animation: chantingFade 2s ease-in-out forwards;
+  opacity: 0;
+}
+
+@keyframes chantingFade {
+  0% { opacity: 0; transform: translateY(10px); }
+  20%, 80% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0.3; transform: translateY(-5px); }
+}
+
+.ritual-completion-glow {
+  animation: completionGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes completionGlow {
+  from {
+    box-shadow: 0 0 30px rgba(201, 169, 98, 0.3), 0 0 60px rgba(201, 169, 98, 0.1);
+  }
+  to {
+    box-shadow: 0 0 50px rgba(201, 169, 98, 0.6), 0 0 100px rgba(232, 168, 124, 0.3);
+  }
+}
+
+.ritual-lotus-petal {
+  position: absolute;
+  font-size: 24px;
+  animation: lotusFall linear forwards;
+  opacity: 0;
+}
+
+@keyframes lotusFall {
+  0% {
+    transform: translateY(-10vh) translateX(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(110vh) translateX(80px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.ritual-timer-bar {
+  height: 3px;
+  background: linear-gradient(90deg, #c9a962, #e8a87c);
+  border-radius: 2px;
+  transition: width linear;
+  box-shadow: 0 0 8px rgba(201, 169, 98, 0.4);
+}
+
+.ritual-btn-primary {
+  background: linear-gradient(135deg, #c9a962 0%, #b39548 100%);
+  color: #1a3a2f;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ritual-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #d9c485 0%, #c9a962 100%);
+  box-shadow: 0 10px 30px rgba(201, 169, 98, 0.3);
+  transform: translateY(-2px);
+}
+
+.ritual-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ritual-btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+}
+
+.ritual-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(201, 169, 98, 0.3);
+  color: #f3eed9;
+}
+
+.ritual-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 169, 98, 0.4), transparent);
+}
+
+.ritual-portrait-frame {
+  border: 3px solid rgba(201, 169, 98, 0.4);
+  box-shadow: 0 0 30px rgba(201, 169, 98, 0.15), inset 0 0 20px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(145deg, rgba(60, 85, 65, 0.6), rgba(30, 55, 40, 0.8));
+}
+
+.ritual-offering-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ritual-offering-btn:hover {
+  background: rgba(201, 169, 98, 0.12);
+  border-color: rgba(201, 169, 98, 0.4);
+  transform: translateY(-3px) scale(1.05);
+}
+
+.ritual-offering-btn.selected {
+  background: rgba(201, 169, 98, 0.2);
+  border-color: #c9a962;
+  box-shadow: 0 0 20px rgba(201, 169, 98, 0.2);
+}
+
+.ritual-textarea {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #faf7f0;
+  transition: all 0.3s ease;
+}
+
+.ritual-textarea:focus {
+  outline: none;
+  border-color: rgba(201, 169, 98, 0.5);
+  box-shadow: 0 0 0 3px rgba(201, 169, 98, 0.1);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.ritual-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.ritual-countdown-text {
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, #c9a962, #f3eed9);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ritual-step-content-enter {
+  animation: stepContentEnter 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes stepContentEnter {
+  0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}

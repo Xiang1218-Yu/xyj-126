@@ -9,7 +9,9 @@ import {
   Settings,
   QrCode,
   Users,
+  Sparkles,
 } from "lucide-react";
+import MemorialRitual from "@/components/MemorialRitual";
 import { useMemorialStore } from "@/store/memorialStore";
 import {
   formatDate,
@@ -39,6 +41,7 @@ export default function MemorialDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordAction, setPasswordAction] = useState<"edit" | "delete">("edit");
+  const [showRitual, setShowRitual] = useState(false);
 
   useEffect(() => {
     loadMemorials();
@@ -290,6 +293,36 @@ export default function MemorialDetail() {
                   距离忌日还有 {daysUntil} 天
                 </div>
               )}
+
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={() => setShowRitual(true)}
+                  className={cn(
+                    "group inline-flex items-center gap-2.5 px-6 py-3 rounded-xl font-medium text-sm md:text-base transition-all duration-300",
+                    theme === "starry"
+                      ? "bg-gradient-to-r from-amber-500/30 to-purple-500/30 text-amber-200 border border-amber-400/30 hover:from-amber-500/40 hover:to-purple-500/40 hover:border-amber-400/50 hover:shadow-lg hover:shadow-amber-500/20"
+                      : "bg-gradient-to-r from-gold-100 to-cream-100 text-gold-700 border border-gold-300/50 hover:from-gold-200/80 hover:to-cream-200 hover:border-gold-400 hover:shadow-md hover:shadow-gold-300/30"
+                  )}
+                >
+                  <Sparkles
+                    className={cn(
+                      "w-4 h-4 md:w-5 md:h-5 transition-transform duration-500 group-hover:rotate-12",
+                      theme === "starry" ? "text-amber-300" : "text-gold-500"
+                    )}
+                  />
+                  <span className="tracking-wide">开始祭奠仪式</span>
+                  <span
+                    className={cn(
+                      "text-xs px-2 py-0.5 rounded-full",
+                      theme === "starry"
+                        ? "bg-amber-400/20 text-amber-200"
+                        : "bg-gold-200/60 text-gold-700"
+                    )}
+                  >
+                    8 个环节
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -555,6 +588,22 @@ export default function MemorialDetail() {
           onSubmit={handlePasswordSubmit}
           onCancel={() => setShowPasswordModal(false)}
           theme={theme}
+        />
+      )}
+
+      {showRitual && memorial && (
+        <MemorialRitual
+          memorial={memorial}
+          onClose={() => setShowRitual(false)}
+          onComplete={(prayerMessage, offerings) => {
+            if (id && prayerMessage.trim()) {
+              addMessage(id, {
+                author: "祭奠祈愿",
+                content: prayerMessage + (offerings.length > 0 ? ` （祭品：${offerings.join("、")}）` : ""),
+              });
+            }
+            setShowRitual(false);
+          }}
         />
       )}
       </div>
