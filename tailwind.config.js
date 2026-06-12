@@ -71,6 +71,10 @@ export default {
         "fade-in": "fadeIn 0.8s ease-out forwards",
         "slide-up": "slideUp 0.6s ease-out forwards",
         "pulse-soft": "pulseSoft 4s ease-in-out infinite",
+        "sakura-fall": "sakuraFall linear infinite",
+        "leaf-fall": "leafFall linear infinite",
+        "snow-fall": "snowFall linear infinite",
+        twinkle: "twinkle ease-in-out infinite",
       },
       keyframes: {
         flicker: {
@@ -95,12 +99,6 @@ export default {
           "0%, 100%": { opacity: "0.8" },
           "50%": { opacity: "1" },
         },
-      },
-      boxShadow: {
-        "candle": "0 0 40px rgba(232, 168, 124, 0.4)",
-        "memorial": "0 10px 40px rgba(26, 58, 47, 0.1)",
-      },
-      keyframes: {
         sakuraFall: {
           "0%": { transform: "translateY(-10vh) translateX(0) rotate(0deg)", opacity: "0" },
           "10%": { opacity: "1" },
@@ -124,11 +122,9 @@ export default {
           "50%": { opacity: "1", transform: "scale(1.2)" },
         },
       },
-      animation: {
-        "sakura-fall": "sakuraFall linear infinite",
-        "leaf-fall": "leafFall linear infinite",
-        "snow-fall": "snowFall linear infinite",
-        twinkle: "twinkle ease-in-out infinite",
+      boxShadow: {
+        "candle": "0 0 40px rgba(232, 168, 124, 0.4)",
+        "memorial": "0 10px 40px rgba(26, 58, 47, 0.1)",
       },
     },
   },
