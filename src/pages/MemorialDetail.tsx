@@ -10,7 +10,10 @@ import {
   QrCode,
   Users,
   Sparkles,
+  UserPlus,
+  Pencil,
 } from "lucide-react";
+import CollaboratePanel from "@/components/CollaboratePanel";
 import MemorialRitual from "@/components/MemorialRitual";
 import { useMemorialStore } from "@/store/memorialStore";
 import {
@@ -33,7 +36,7 @@ import { cn } from "@/lib/utils";
 export default function MemorialDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial, loadFamilyRelations, getRelationsForMemorial } =
+  const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial, loadFamilyRelations, getRelationsForMemorial, getCollaborators, currentCollaboratorId, getContributions } =
     useMemorialStore();
 
   const [isVerified, setIsVerified] = useState(false);
@@ -42,6 +45,7 @@ export default function MemorialDetail() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordAction, setPasswordAction] = useState<"edit" | "delete">("edit");
   const [showRitual, setShowRitual] = useState(false);
+  const [showCollaboratePanel, setShowCollaboratePanel] = useState(false);
 
   useEffect(() => {
     loadMemorials();
@@ -94,6 +98,10 @@ export default function MemorialDetail() {
   const fullUrl = `${window.location.origin}${window.location.pathname}`;
   const theme = memorial.theme;
   const displayMode = memorial.biographyDisplayMode ?? "text";
+  const collaborators = id ? getCollaborators(id) : [];
+  const contributions = id ? getContributions(id) : [];
+  const currentCollaborator = collaborators.find((c) => c.id === currentCollaboratorId);
+  const isCollaborator = !!currentCollaborator;
 
   const verifyAdminPassword = async (password: string): Promise<boolean> => {
     if (!memorial.adminPassword && !memorial.password) {
@@ -169,6 +177,32 @@ export default function MemorialDetail() {
             </Link>
 
             <div className="flex items-center gap-1">
+              {isCollaborator && (
+                <button
+                  onClick={() => navigate(`/collaborate/${id}`)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                    theme === "starry"
+                      ? "bg-purple-500/30 text-purple-200 hover:bg-purple-500/40"
+                      : "bg-memorial-100 text-memorial-700 hover:bg-memorial-200"
+                  )}
+                >
+                  <Pencil className="w-4 h-4" />
+                  <span className="hidden sm:inline">协作编辑</span>
+                </button>
+              )}
+              <button
+                onClick={() => setShowCollaboratePanel(true)}
+                className={cn(
+                  "p-2 rounded-full transition-colors",
+                  theme === "starry"
+                    ? "hover:bg-white/10 text-gray-200"
+                    : "hover:bg-memorial-100 text-memorial-600"
+                )}
+                title="协作编辑"
+              >
+                <UserPlus className="w-5 h-5" />
+              </button>
               <div className="relative">
                 <button
                   onClick={() => setShowAdminMenu(!showAdminMenu)}
@@ -202,6 +236,21 @@ export default function MemorialDetail() {
                     >
                       <Edit className="w-4 h-4" />
                       编辑
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowAdminMenu(false);
+                        setShowCollaboratePanel(true);
+                      }}
+                      className={cn(
+                        "w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors",
+                        theme === "starry"
+                          ? "text-gray-200 hover:bg-white/10"
+                          : "text-memorial-700 hover:bg-memorial-50"
+                      )}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      协作管理
                     </button>
                     <button
                       onClick={() => handleAdminAction("delete")}
@@ -438,6 +487,176 @@ export default function MemorialDetail() {
                   </div>
                 </div>
 
+                {collaborators.length > 0 && (
+                  <div className="theme-card rounded-2xl p-5 shadow-sm">
+                    <h3
+                      className={cn(
+                        "font-serif text-lg mb-4 flex items-center gap-2",
+                        theme === "starry" ? "text-gray-100" : "text-memorial-950"
+                      )}
+                    >
+                      <Users className="w-5 h-5" />
+                      共同编辑
+                      <span
+                        className={cn(
+                          "text-xs font-normal px-2 py-0.5 rounded-full",
+                          theme === "starry"
+                            ? "bg-purple-500/20 text-purple-300"
+                            : "bg-memorial-100 text-memorial-600"
+                        )}
+                      >
+                        {collaborators.length} 人
+                      </span>
+                    </h3>
+                    <div className="space-y-2.5">
+                      {collaborators.slice(0, 5).map((c) => (
+                        <div
+                          key={c.id}
+                          className="flex items-center gap-3"
+                        >
+                          <div
+                            className={cn(
+                              "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-serif",
+                              theme === "starry" ? "bg-slate-600 text-gray-200" : "bg-memorial-200 text-memorial-700"
+                            )}
+                          >
+                            {c.name.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p
+                              className={cn(
+                                "font-medium text-sm truncate",
+                                theme === "starry" ? "text-gray-200" : "text-memorial-800"
+                              )}
+                            >
+                              {c.name}
+                            </p>
+                            <p
+                              className={cn(
+                                "text-xs",
+                                theme === "starry" ? "text-gray-400" : "text-memorial-500"
+                              )}
+                            >
+                              {c.relation}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      {collaborators.length > 5 && (
+                        <p
+                          className={cn(
+                            "text-xs text-center pt-1",
+                            theme === "starry" ? "text-gray-500" : "text-memorial-400"
+                          )}
+                        >
+                          还有 {collaborators.length - 5} 位协作者
+                        </p>
+                      )}
+                    </div>
+                    <div
+                      className={cn(
+                        "mt-4 pt-4 border-t",
+                        theme === "starry" ? "border-slate-600" : "border-memorial-100"
+                      )}
+                    >
+                      <button
+                        onClick={() => setShowCollaboratePanel(true)}
+                        className={cn(
+                          "inline-flex items-center gap-1 text-sm transition-colors",
+                          theme === "starry"
+                            ? "text-gray-300 hover:text-white"
+                            : "text-memorial-600 hover:text-memorial-800"
+                        )}
+                      >
+                        <UserPlus className="w-4 h-4" />
+                        查看详情 / 邀请亲友
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {contributions.length > 0 && (
+                  <div className="theme-card rounded-2xl p-5 shadow-sm">
+                    <h3
+                      className={cn(
+                        "font-serif text-lg mb-4 flex items-center gap-2",
+                        theme === "starry" ? "text-gray-100" : "text-memorial-950"
+                      )}
+                    >
+                      <Clock className="w-5 h-5" />
+                      最近贡献
+                      <span
+                        className={cn(
+                          "text-xs font-normal px-2 py-0.5 rounded-full",
+                          theme === "starry"
+                            ? "bg-amber-500/20 text-amber-300"
+                            : "bg-gold-100 text-gold-700"
+                        )}
+                      >
+                        {contributions.length} 条
+                      </span>
+                    </h3>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {contributions.slice(0, 5).map((c) => (
+                        <div
+                          key={c.id}
+                          className={cn(
+                            "p-2.5 rounded-lg",
+                            theme === "starry" ? "bg-white/5" : "bg-memorial-50"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span
+                              className={cn(
+                                "font-medium text-xs",
+                                theme === "starry" ? "text-gray-200" : "text-memorial-800"
+                              )}
+                            >
+                              {c.collaboratorName}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-xs",
+                                theme === "starry" ? "text-gray-500" : "text-memorial-400"
+                              )}
+                            >
+                              {formatDate(c.createdAt)}
+                            </span>
+                          </div>
+                          <p
+                            className={cn(
+                              "text-xs",
+                              theme === "starry" ? "text-gray-400" : "text-memorial-600"
+                            )}
+                          >
+                            {c.summary}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    {contributions.length > 5 && (
+                      <div
+                        className={cn(
+                          "mt-3 pt-3 border-t",
+                          theme === "starry" ? "border-slate-600" : "border-memorial-100"
+                        )}
+                      >
+                        <button
+                          onClick={() => setShowCollaboratePanel(true)}
+                          className={cn(
+                            "inline-flex items-center gap-1 text-xs transition-colors",
+                            theme === "starry"
+                              ? "text-gray-400 hover:text-white"
+                              : "text-memorial-500 hover:text-memorial-700"
+                          )}
+                        >
+                          查看全部 {contributions.length} 条记录
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {id && getRelationsForMemorial(id).filter(({ otherMemorial }) => !otherMemorial.isPrivate).length > 0 && (
                   <div className="theme-card rounded-2xl p-5 shadow-sm">
                     <h3
@@ -604,6 +823,16 @@ export default function MemorialDetail() {
             }
             setShowRitual(false);
           }}
+        />
+      )}
+
+      {showCollaboratePanel && id && (
+        <CollaboratePanel
+          memorialId={id}
+          memorialName={memorial.name}
+          theme={theme}
+          isAdmin={true}
+          onClose={() => setShowCollaboratePanel(false)}
         />
       )}
       </div>

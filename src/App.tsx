@@ -5,6 +5,8 @@ import CreateMemorial from "@/pages/CreateMemorial";
 import MemorialDetail from "@/pages/MemorialDetail";
 import Reminders from "@/pages/Reminders";
 import FamilyNetwork from "@/pages/FamilyNetwork";
+import InviteJoin from "@/pages/InviteJoin";
+import CollaborateEdit from "@/pages/CollaborateEdit";
 
 export default function App() {
   return (
@@ -19,6 +21,8 @@ export default function App() {
             <Route path="/edit/:id" element={<CreateMemorial />} />
             <Route path="/memorial/:id" element={<MemorialDetail />} />
             <Route path="/reminders" element={<Reminders />} />
+            <Route path="/invite/:token" element={<InviteJoin />} />
+            <Route path="/collaborate/:id" element={<CollaborateEdit />} />
           </Routes>
         </main>
       </div>

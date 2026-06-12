@@ -47,6 +47,9 @@ export interface Memorial {
   reminderEnabled: boolean;
   reminderDays: number;
   theme: VisualTheme;
+  collaborators: Collaborator[];
+  contributions: Contribution[];
+  inviteLinks: InviteLink[];
   createdAt: string;
   updatedAt: string;
 }
@@ -269,6 +272,61 @@ export const RITUAL_STEPS: RitualStep[] = [
     icon: "🙏",
   },
 ];
+
+export interface Collaborator {
+  id: string;
+  name: string;
+  relation: string;
+  avatar?: string;
+  joinedAt: string;
+  lastActiveAt: string;
+}
+
+export type ContributionType =
+  | "biography"
+  | "photo"
+  | "photo_caption"
+  | "epitaph"
+  | "message"
+  | "flower"
+  | "candle"
+  | "timeline"
+  | "theme";
+
+export const CONTRIBUTION_LABELS: Record<ContributionType, string> = {
+  biography: "编辑生平介绍",
+  photo: "上传照片",
+  photo_caption: "编辑照片说明",
+  epitaph: "编辑墓志铭",
+  message: "发表留言",
+  flower: "敬献鲜花",
+  candle: "点燃蜡烛",
+  timeline: "编辑时间轴",
+  theme: "切换主题",
+};
+
+export interface Contribution {
+  id: string;
+  memorialId: string;
+  collaboratorId: string;
+  collaboratorName: string;
+  type: ContributionType;
+  summary: string;
+  detail?: string;
+  createdAt: string;
+}
+
+export interface InviteLink {
+  id: string;
+  memorialId: string;
+  token: string;
+  createdBy: string;
+  createdAt: string;
+  expiresAt: string;
+  maxUses: number;
+  usedCount: number;
+  isActive: boolean;
+}
 
 export const CHANTING_TEXTS = [
   "南无阿弥陀佛",

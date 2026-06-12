@@ -1,11 +1,12 @@
 import { create } from "zustand";
-import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme, BiographyDisplayMode } from "@/types";
+import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme, BiographyDisplayMode, Collaborator, Contribution, InviteLink, ContributionType } from "@/types";
 import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
 import { generateId, hashPassword } from "@/utils";
 
 interface MemorialState {
   memorials: Memorial[];
   familyRelations: FamilyRelation[];
+  currentCollaboratorId: string | null;
   isLoaded: boolean;
   loadMemorials: () => void;
   saveMemorials: () => void;
@@ -15,7 +16,7 @@ interface MemorialState {
   updateMemorial: (id: string, data: Partial<Memorial>) => void;
   deleteMemorial: (id: string) => void;
   getMemorial: (id: string) => Memorial | undefined;
-  addPhoto: (memorialId: string, photo: Omit<Photo, "id" | "order">) => void;
+  addPhoto: (memorialId: string, photo: Omit<Photo, "id" | "order">, collaboratorId?: string, collaboratorName?: string) => void;
   removePhoto: (memorialId: string, photoId: string) => void;
   addMessage: (memorialId: string, message: Omit<Message, "id" | "createdAt">) => void;
   addFlower: (memorialId: string, flower: Omit<Flower, "id" | "createdAt">) => void;
@@ -28,6 +29,16 @@ interface MemorialState {
   getRelatedMemorials: (memorialId: string) => Memorial[];
   getAllFamilyRelations: () => FamilyRelation[];
   setMemorialTheme: (memorialId: string, theme: VisualTheme) => void;
+  createInviteLink: (memorialId: string, createdBy: string, maxUses?: number, validDays?: number) => InviteLink;
+  getInviteLinkByToken: (token: string) => InviteLink | null;
+  joinMemorialByInvite: (token: string, name: string, relation: string) => { success: boolean; memorial?: Memorial; collaborator?: Collaborator; message: string };
+  addCollaborator: (memorialId: string, name: string, relation: string) => Collaborator | null;
+  removeCollaborator: (memorialId: string, collaboratorId: string) => void;
+  getCollaborators: (memorialId: string) => Collaborator[];
+  addContribution: (memorialId: string, collaboratorId: string, collaboratorName: string, type: ContributionType, summary: string, detail?: string) => void;
+  getContributions: (memorialId: string) => Contribution[];
+  setCurrentCollaborator: (collaboratorId: string | null) => void;
+  updateCollaboratorLastActive: (memorialId: string, collaboratorId: string) => void;
 }
 
 const STORAGE_KEY = "memorial_memorials";
@@ -52,11 +63,17 @@ const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
   reminderEnabled: false,
   reminderDays: 7,
   theme: "default",
+  collaborators: [],
+  contributions: [],
+  inviteLinks: [],
 };
+
+const COLLABORATOR_STORAGE_KEY = "memorial_current_collaborator";
 
 export const useMemorialStore = create<MemorialState>((set, get) => ({
   memorials: [],
   familyRelations: [],
+  currentCollaboratorId: localStorage.getItem(COLLABORATOR_STORAGE_KEY),
   isLoaded: false,
 
   loadMemorials: () => {
@@ -165,7 +182,7 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
     return get().memorials.find((m) => m.id === id);
   },
 
-  addPhoto: (memorialId, photo) => {
+  addPhoto: (memorialId, photo, collaboratorId, collaboratorName) => {
     set((state) => ({
       memorials: state.memorials.map((m) => {
         if (m.id !== memorialId) return m;
@@ -182,6 +199,9 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
       }),
     }));
     get().saveMemorials();
+    if (collaboratorId && collaboratorName) {
+      get().addContribution(memorialId, collaboratorId, collaboratorName, "photo", "上传了照片");
+    }
   },
 
   removePhoto: (memorialId, photoId) => {
@@ -364,6 +384,194 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
     }));
     get().saveMemorials();
   },
+
+  createInviteLink: (memorialId, createdBy, maxUses = 10, validDays = 30) => {
+    const token = generateId() + generateId().substring(0, 8);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + validDays * 24 * 60 * 60 * 1000).toISOString();
+
+    const newInvite: InviteLink = {
+      id: generateId(),
+      memorialId,
+      token,
+      createdBy,
+      createdAt: now.toISOString(),
+      expiresAt,
+      maxUses,
+      usedCount: 0,
+      isActive: true,
+    };
+
+    set((state) => ({
+      memorials: state.memorials.map((m) =>
+        m.id === memorialId
+          ? { ...m, inviteLinks: [...(m.inviteLinks || []), newInvite], updatedAt: now.toISOString() }
+          : m
+      ),
+    }));
+    get().saveMemorials();
+    return newInvite;
+  },
+
+  getInviteLinkByToken: (token) => {
+    const { memorials } = get();
+    for (const m of memorials) {
+      const invite = (m.inviteLinks || []).find((i) => i.token === token);
+      if (invite) return invite;
+    }
+    return null;
+  },
+
+  joinMemorialByInvite: (token, name, relation) => {
+    const { memorials, getInviteLinkByToken } = get();
+    const invite = getInviteLinkByToken(token);
+
+    if (!invite) {
+      return { success: false, message: "邀请链接无效" };
+    }
+
+    if (!invite.isActive) {
+      return { success: false, message: "邀请链接已失效" };
+    }
+
+    if (new Date(invite.expiresAt) < new Date()) {
+      return { success: false, message: "邀请链接已过期" };
+    }
+
+    if (invite.usedCount >= invite.maxUses) {
+      return { success: false, message: "邀请链接已达使用上限" };
+    }
+
+    const memorial = memorials.find((m) => m.id === invite.memorialId);
+    if (!memorial) {
+      return { success: false, message: "纪念页不存在" };
+    }
+
+    const collaborator = get().addCollaborator(invite.memorialId, name, relation);
+    if (!collaborator) {
+      return { success: false, message: "加入失败，请重试" };
+    }
+
+    set((state) => ({
+      memorials: state.memorials.map((m) =>
+        m.id === invite.memorialId
+          ? {
+              ...m,
+              inviteLinks: (m.inviteLinks || []).map((i) =>
+                i.id === invite.id ? { ...i, usedCount: i.usedCount + 1 } : i
+              ),
+            }
+          : m
+      ),
+    }));
+    get().saveMemorials();
+    get().setCurrentCollaborator(collaborator.id);
+
+    return { success: true, memorial, collaborator, message: "成功加入纪念页协作" };
+  },
+
+  addCollaborator: (memorialId, name, relation) => {
+    const now = new Date().toISOString();
+    const newCollaborator: Collaborator = {
+      id: generateId(),
+      name,
+      relation,
+      joinedAt: now,
+      lastActiveAt: now,
+    };
+
+    set((state) => ({
+      memorials: state.memorials.map((m) =>
+        m.id === memorialId
+          ? {
+              ...m,
+              collaborators: [...(m.collaborators || []), newCollaborator],
+              updatedAt: now,
+            }
+          : m
+      ),
+    }));
+    get().saveMemorials();
+    return newCollaborator;
+  },
+
+  removeCollaborator: (memorialId, collaboratorId) => {
+    set((state) => ({
+      memorials: state.memorials.map((m) =>
+        m.id === memorialId
+          ? {
+              ...m,
+              collaborators: (m.collaborators || []).filter((c) => c.id !== collaboratorId),
+              updatedAt: new Date().toISOString(),
+            }
+          : m
+      ),
+    }));
+    get().saveMemorials();
+  },
+
+  getCollaborators: (memorialId) => {
+    const memorial = get().getMemorial(memorialId);
+    return memorial?.collaborators || [];
+  },
+
+  addContribution: (memorialId, collaboratorId, collaboratorName, type, summary, detail) => {
+    const now = new Date().toISOString();
+    const newContribution: Contribution = {
+      id: generateId(),
+      memorialId,
+      collaboratorId,
+      collaboratorName,
+      type,
+      summary,
+      detail,
+      createdAt: now,
+    };
+
+    set((state) => ({
+      memorials: state.memorials.map((m) =>
+        m.id === memorialId
+          ? {
+              ...m,
+              contributions: [newContribution, ...(m.contributions || [])],
+              updatedAt: now,
+            }
+          : m
+      ),
+    }));
+    get().saveMemorials();
+    get().updateCollaboratorLastActive(memorialId, collaboratorId);
+  },
+
+  getContributions: (memorialId) => {
+    const memorial = get().getMemorial(memorialId);
+    return memorial?.contributions || [];
+  },
+
+  setCurrentCollaborator: (collaboratorId) => {
+    if (collaboratorId) {
+      localStorage.setItem(COLLABORATOR_STORAGE_KEY, collaboratorId);
+    } else {
+      localStorage.removeItem(COLLABORATOR_STORAGE_KEY);
+    }
+    set({ currentCollaboratorId: collaboratorId });
+  },
+
+  updateCollaboratorLastActive: (memorialId, collaboratorId) => {
+    const now = new Date().toISOString();
+    set((state) => ({
+      memorials: state.memorials.map((m) =>
+        m.id === memorialId
+          ? {
+              ...m,
+              collaborators: (m.collaborators || []).map((c) =>
+                c.id === collaboratorId ? { ...c, lastActiveAt: now } : c
+              ),
+            }
+          : m
+      ),
+    }));
+  },
 }));
 
 function getSampleMemorials(): Promise<Memorial[]> {
@@ -415,6 +623,44 @@ function getSampleMemorials(): Promise<Memorial[]> {
         reminderEnabled: true,
         reminderDays: 7,
         theme: "default",
+        collaborators: [
+          {
+            id: "col-001",
+            name: "张小明",
+            relation: "孙子",
+            joinedAt: sample1Date.toISOString(),
+            lastActiveAt: sample1Date.toISOString(),
+          },
+          {
+            id: "col-002",
+            name: "张小红",
+            relation: "孙女",
+            joinedAt: new Date(sample1Date.getTime() + 86400000).toISOString(),
+            lastActiveAt: new Date(sample1Date.getTime() + 86400000 * 2).toISOString(),
+          },
+        ],
+        contributions: [
+          {
+            id: "ctr-001",
+            memorialId: "sample-001",
+            collaboratorId: "col-001",
+            collaboratorName: "张小明",
+            type: "biography",
+            summary: "补充了爷爷的生平事迹",
+            detail: "添加了爷爷退休后参与社区公益工作的详细描述",
+            createdAt: sample1Date.toISOString(),
+          },
+          {
+            id: "ctr-002",
+            memorialId: "sample-001",
+            collaboratorId: "col-002",
+            collaboratorName: "张小红",
+            type: "message",
+            summary: "发表了追思留言",
+            createdAt: new Date(sample1Date.getTime() + 86400000).toISOString(),
+          },
+        ],
+        inviteLinks: [],
         createdAt: sample1Date.toISOString(),
         updatedAt: sample1Date.toISOString(),
       },
@@ -456,6 +702,9 @@ function getSampleMemorials(): Promise<Memorial[]> {
         reminderEnabled: true,
         reminderDays: 3,
         theme: "sakura",
+        collaborators: [],
+        contributions: [],
+        inviteLinks: [],
         createdAt: sample2Date.toISOString(),
         updatedAt: sample2Date.toISOString(),
       },
@@ -491,6 +740,9 @@ function getSampleMemorials(): Promise<Memorial[]> {
         reminderEnabled: false,
         reminderDays: 7,
         theme: "starry",
+        collaborators: [],
+        contributions: [],
+        inviteLinks: [],
         createdAt: new Date(sample2Date.getTime() - 86400000 * 30).toISOString(),
         updatedAt: new Date(sample2Date.getTime() - 86400000 * 30).toISOString(),
       },
@@ -505,6 +757,9 @@ async function migrateMemorials(memorials: Memorial[]): Promise<Memorial[]> {
     gender: m.gender ?? "unknown",
     theme: (m.theme as VisualTheme) ?? "default",
     biographyDisplayMode: (m.biographyDisplayMode as BiographyDisplayMode) ?? "text",
+    collaborators: m.collaborators ?? [],
+    contributions: m.contributions ?? [],
+    inviteLinks: m.inviteLinks ?? [],
   }));
 }
 
