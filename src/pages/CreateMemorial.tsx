@@ -3,8 +3,8 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
 import { compressImage, hashPassword, formatDateShort } from "@/utils";
-import type { Photo, RelationType, FamilyRelation, Memorial } from "@/types";
-import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
+import type { Photo, RelationType, Gender } from "@/types";
+import { RELATION_LABELS } from "@/types";
 
 export default function CreateMemorial() {
   const navigate = useNavigate();
@@ -17,14 +17,15 @@ export default function CreateMemorial() {
     loadFamilyRelations,
     addFamilyRelation,
     removeFamilyRelation,
+    getRelationsForMemorial,
     memorials,
-    familyRelations,
   } = useMemorialStore();
   const isEditing = !!id;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     name: "",
+    gender: "unknown" as Gender,
     birthDate: "",
     deathDate: "",
     avatar: "",
@@ -57,6 +58,7 @@ export default function CreateMemorial() {
       if (memorial) {
         setFormData({
           name: memorial.name,
+          gender: memorial.gender,
           birthDate: memorial.birthDate,
           deathDate: memorial.deathDate,
           avatar: memorial.avatar,
@@ -75,38 +77,8 @@ export default function CreateMemorial() {
 
   const currentRelations = useMemo(() => {
     if (!isEditing || !id) return [];
-
-    const result: Array<{ relation: FamilyRelation; otherMemorial: Memorial; label: string }> = [];
-
-    for (const r of familyRelations) {
-      let otherId: string | null = null;
-      let label: string | null = null;
-
-      if (r.fromMemorialId === id) {
-        otherId = r.toMemorialId;
-        label = RELATION_LABELS[r.relation];
-      } else if (r.toMemorialId === id) {
-        otherId = r.fromMemorialId;
-        const fromMemorial = memorials.find((m) => m.id === r.fromMemorialId);
-        if (fromMemorial) {
-          const gender = fromMemorial.name.includes("公") || fromMemorial.name.includes("爷") || fromMemorial.name.includes("山") ? "male" : "female";
-          const inverse = INVERSE_RELATIONS[r.relation][gender as "male" | "female"];
-          label = RELATION_LABELS[inverse];
-        } else {
-          label = RELATION_LABELS[r.relation];
-        }
-      }
-
-      if (otherId && label) {
-        const otherMemorial = memorials.find((m) => m.id === otherId);
-        if (otherMemorial) {
-          result.push({ relation: r, otherMemorial, label });
-        }
-      }
-    }
-
-    return result;
-  }, [isEditing, id, familyRelations, memorials]);
+    return getRelationsForMemorial(id);
+  }, [isEditing, id, getRelationsForMemorial]);
 
   const availableMemorials = useMemo(() => {
     return memorials.filter(
@@ -114,7 +86,7 @@ export default function CreateMemorial() {
     );
   }, [memorials, id, currentRelations]);
 
-  const handleInputChange = (field: string, value: string | boolean | number) => {
+  const handleInputChange = (field: string, value: string | boolean | number | Gender) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors((prev) => {
@@ -331,6 +303,48 @@ export default function CreateMemorial() {
                     {errors.name && (
                       <p className="text-red-500 text-sm mt-1">{errors.name}</p>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm text-memorial-600 mb-2">性别</label>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("gender", "male" as Gender)}
+                        className={`flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                          formData.gender === "male"
+                            ? "border-memorial-600 bg-memorial-50 text-memorial-700"
+                            : "border-memorial-200 text-memorial-500 hover:border-memorial-300"
+                        }`}
+                      >
+                        <span>👨</span>
+                        <span>男性</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("gender", "female" as Gender)}
+                        className={`flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                          formData.gender === "female"
+                            ? "border-memorial-600 bg-memorial-50 text-memorial-700"
+                            : "border-memorial-200 text-memorial-500 hover:border-memorial-300"
+                        }`}
+                      >
+                        <span>👩</span>
+                        <span>女性</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange("gender", "unknown" as Gender)}
+                        className={`flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 ${
+                          formData.gender === "unknown"
+                            ? "border-memorial-600 bg-memorial-50 text-memorial-700"
+                            : "border-memorial-200 text-memorial-500 hover:border-memorial-300"
+                        }`}
+                      >
+                        <span>❓</span>
+                        <span>未知</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">

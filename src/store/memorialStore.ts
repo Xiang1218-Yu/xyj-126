@@ -34,6 +34,7 @@ const RELATIONS_STORAGE_KEY = "memorial_family_relations";
 
 const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
   name: "",
+  gender: "unknown",
   birthDate: "",
   deathDate: "",
   avatar: "",
@@ -314,8 +315,8 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
         otherId = r.fromMemorialId;
         const fromMemorial = memorials.find((m) => m.id === r.fromMemorialId);
         if (fromMemorial) {
-          const gender = fromMemorial.name.includes("公") || fromMemorial.name.includes("爷") || fromMemorial.name.includes("山") ? "male" : "female";
-          const inverse = INVERSE_RELATIONS[r.relation][gender as "male" | "female"];
+          const gender = fromMemorial.gender === "unknown" ? "male" : fromMemorial.gender;
+          const inverse = INVERSE_RELATIONS[r.relation][gender];
           label = RELATION_LABELS[inverse];
         } else {
           label = RELATION_LABELS[r.relation];
@@ -364,6 +365,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
       {
         id: "sample-001",
         name: "张敬山",
+        gender: "male",
         birthDate: "1945-03-15",
         deathDate: "2023-11-20",
         avatar: "",
@@ -405,6 +407,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
       {
         id: "sample-002",
         name: "李秀英",
+        gender: "female",
         birthDate: "1952-08-08",
         deathDate: "2024-05-12",
         avatar: "",
@@ -443,6 +446,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
       {
         id: "sample-003",
         name: "王老先生",
+        gender: "male",
         birthDate: "1938-12-25",
         deathDate: "2022-12-25",
         avatar: "",
@@ -480,6 +484,7 @@ async function migrateMemorials(memorials: Memorial[]): Promise<Memorial[]> {
   return memorials.map((m) => ({
     ...m,
     adminPassword: m.adminPassword ?? "",
+    gender: m.gender ?? "unknown",
   }));
 }
 

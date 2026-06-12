@@ -8,6 +8,7 @@ import {
   Clock,
   Settings,
   QrCode,
+  Users,
 } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
 import {
@@ -26,7 +27,7 @@ import PasswordProtected from "@/components/PasswordProtected";
 export default function MemorialDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial } =
+  const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial, loadFamilyRelations, getRelationsForMemorial } =
     useMemorialStore();
 
   const [isVerified, setIsVerified] = useState(false);
@@ -37,7 +38,8 @@ export default function MemorialDetail() {
 
   useEffect(() => {
     loadMemorials();
-  }, [loadMemorials]);
+    loadFamilyRelations();
+  }, [loadMemorials, loadFamilyRelations]);
 
   const memorial = id ? getMemorial(id) : undefined;
 
@@ -290,6 +292,55 @@ export default function MemorialDetail() {
                     </div>
                   </div>
                 </div>
+
+                {id && getRelationsForMemorial(id).filter(({ otherMemorial }) => !otherMemorial.isPrivate).length > 0 && (
+                  <div className="bg-white rounded-2xl p-5 shadow-sm">
+                    <h3 className="font-serif text-lg text-memorial-950 mb-4 flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      亲属关系
+                    </h3>
+                    <div className="space-y-3">
+                      {getRelationsForMemorial(id)
+                        .filter(({ otherMemorial }) => !otherMemorial.isPrivate)
+                        .map(({ otherMemorial, label }) => (
+                          <Link
+                            key={otherMemorial.id}
+                            to={`/memorial/${otherMemorial.id}`}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-memorial-50 hover:bg-memorial-100 transition-colors"
+                          >
+                            <div className="w-12 h-12 rounded-full bg-memorial-200 flex items-center justify-center flex-shrink-0">
+                              {otherMemorial.avatar ? (
+                                <img
+                                  src={otherMemorial.avatar}
+                                  alt={otherMemorial.name}
+                                  className="w-full h-full rounded-full object-cover"
+                                />
+                              ) : (
+                                <span className="font-serif text-memorial-700 text-lg">
+                                  {otherMemorial.name.charAt(0)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-memorial-800 truncate">
+                                {otherMemorial.name}
+                              </p>
+                              <p className="text-sm text-memorial-500">{label}</p>
+                            </div>
+                          </Link>
+                        ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-memorial-100">
+                      <Link
+                        to="/family-network"
+                        className="inline-flex items-center gap-1 text-sm text-memorial-600 hover:text-memorial-800 transition-colors"
+                      >
+                        <Users className="w-4 h-4" />
+                        查看完整亲属网络
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

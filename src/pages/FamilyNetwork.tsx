@@ -22,7 +22,7 @@ interface Edge {
 }
 
 export default function FamilyNetwork() {
-  const { memorials, familyRelations, loadMemorials, loadFamilyRelations, removeFamilyRelation } = useMemorialStore();
+  const { memorials, familyRelations, loadMemorials, loadFamilyRelations, removeFamilyRelation, getRelationsForMemorial } = useMemorialStore();
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -498,42 +498,30 @@ export default function FamilyNetwork() {
                     <div className="pt-3 border-t border-memorial-100">
                       <h4 className="text-sm font-medium text-memorial-700 mb-2">亲属关系</h4>
                       <div className="space-y-2">
-                        {familyRelations
-                          .filter(
-                            (r) =>
-                              r.fromMemorialId === selectedNode.id ||
-                              r.toMemorialId === selectedNode.id
-                          )
-                          .map((r) => {
-                            const otherId = r.fromMemorialId === selectedNode.id ? r.toMemorialId : r.fromMemorialId;
-                            const other = memorials.find((m) => m.id === otherId);
-                            if (!other || other.isPrivate) return null;
-                            const label = r.fromMemorialId === selectedNode.id
-                              ? RELATION_LABELS[r.relation]
-                              : `（${RELATION_LABELS[r.relation]}的对方）`;
-                            return (
-                              <div
-                                key={r.id}
-                                className="flex items-center justify-between text-sm bg-memorial-50 rounded-lg p-2"
-                              >
-                                <div>
-                                  <Link
-                                    to={`/memorial/${other.id}`}
-                                    className="text-memorial-800 hover:text-memorial-600"
-                                  >
-                                    {other.name}
-                                  </Link>
-                                  <span className="text-memorial-500 ml-2">{label}</span>
-                                </div>
-                                <button
-                                  onClick={() => setShowDeleteConfirm(showDeleteConfirm === r.id ? null : r.id)}
-                                  className="p-1 rounded hover:bg-red-100 transition-colors"
+                        {getRelationsForMemorial(selectedNode.id)
+                          .filter(({ otherMemorial }) => !otherMemorial.isPrivate)
+                          .map(({ relation, otherMemorial, label }) => (
+                            <div
+                              key={relation.id}
+                              className="flex items-center justify-between text-sm bg-memorial-50 rounded-lg p-2"
+                            >
+                              <div>
+                                <Link
+                                  to={`/memorial/${otherMemorial.id}`}
+                                  className="text-memorial-800 hover:text-memorial-600"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5 text-memorial-400 hover:text-red-500" />
-                                </button>
+                                  {otherMemorial.name}
+                                </Link>
+                                <span className="text-memorial-500 ml-2">{label}</span>
                               </div>
-                            );
-                          })}
+                              <button
+                                onClick={() => setShowDeleteConfirm(showDeleteConfirm === relation.id ? null : relation.id)}
+                                className="p-1 rounded hover:bg-red-100 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-memorial-400 hover:text-red-500" />
+                              </button>
+                            </div>
+                          ))}
                       </div>
                     </div>
                     <div className="flex gap-2 pt-3">

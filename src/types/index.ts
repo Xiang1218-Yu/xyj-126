@@ -25,9 +25,12 @@ export interface Candle {
   createdAt: string;
 }
 
+export type Gender = "male" | "female" | "unknown";
+
 export interface Memorial {
   id: string;
   name: string;
+  gender: Gender;
   birthDate: string;
   deathDate: string;
   avatar: string;
