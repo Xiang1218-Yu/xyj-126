@@ -3,6 +3,7 @@ import { Send, Flower2 } from "lucide-react";
 import { getFlowerEmoji } from "@/utils";
 import type { Flower } from "@/types";
 import Danmaku from "./Danmaku";
+import { cn } from "@/lib/utils";
 
 const FLOWER_TYPES = [
   { id: "chrysanthemum", name: "菊花", emoji: "🌼" },
@@ -16,9 +17,10 @@ const FLOWER_TYPES = [
 interface FlowerAreaProps {
   flowers: Flower[];
   onAddFlower: (type: string, message: string) => void;
+  theme?: string;
 }
 
-export default function FlowerArea({ flowers, onAddFlower }: FlowerAreaProps) {
+export default function FlowerArea({ flowers, onAddFlower, theme = "default" }: FlowerAreaProps) {
   const [selectedFlower, setSelectedFlower] = useState<string>("chrysanthemum");
   const [message, setMessage] = useState("");
   const [showSelector, setShowSelector] = useState(false);
@@ -39,13 +41,34 @@ export default function FlowerArea({ flowers, onAddFlower }: FlowerAreaProps) {
   const displayFlowers = flowers.slice(-30);
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm">
+    <div className="theme-card rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-serif text-xl text-memorial-950">💐 献花台</h3>
-        <span className="text-memorial-500 text-sm">共 {flowers.length} 束花</span>
+        <h3
+          className={cn(
+            "font-serif text-xl",
+            theme === "starry" ? "text-gray-100" : "text-memorial-950"
+          )}
+        >
+          💐 献花台
+        </h3>
+        <span
+          className={cn(
+            "text-sm",
+            theme === "starry" ? "text-gray-400" : "text-memorial-500"
+          )}
+        >
+          共 {flowers.length} 束花
+        </span>
       </div>
 
-      <div className="relative min-h-[160px] bg-gradient-to-b from-memorial-50 to-cream-100 rounded-xl p-6 mb-6 overflow-hidden">
+      <div
+        className={cn(
+          "relative min-h-[160px] rounded-xl p-6 mb-6 overflow-hidden",
+          theme === "starry"
+            ? "bg-gradient-to-b from-slate-700/50 to-slate-800/50"
+            : "bg-gradient-to-b from-memorial-50 to-cream-100"
+        )}
+      >
         <Danmaku items={flowers} variant="flower" />
 
         <div className="flex flex-wrap justify-center gap-2">
@@ -60,7 +83,12 @@ export default function FlowerArea({ flowers, onAddFlower }: FlowerAreaProps) {
           ))}
 
           {flowers.length === 0 && (
-            <div className="text-center py-8 text-memorial-400 w-full">
+            <div
+              className={cn(
+                "text-center py-8 w-full",
+                theme === "starry" ? "text-gray-500" : "text-memorial-400"
+              )}
+            >
               <Flower2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p className="text-sm">为逝者献上一束鲜花</p>
             </div>
@@ -103,20 +131,39 @@ export default function FlowerArea({ flowers, onAddFlower }: FlowerAreaProps) {
       {showSelector ? (
         <div className="space-y-4">
           <div>
-            <p className="text-sm text-memorial-600 mb-3">选择花束</p>
+            <p
+              className={cn(
+                "text-sm mb-3",
+                theme === "starry" ? "text-gray-300" : "text-memorial-600"
+              )}
+            >
+              选择花束
+            </p>
             <div className="grid grid-cols-6 gap-2">
               {FLOWER_TYPES.map((flower) => (
                 <button
                   key={flower.id}
                   onClick={() => setSelectedFlower(flower.id)}
-                  className={`p-3 rounded-xl transition-all ${
+                  className={cn(
+                    "p-3 rounded-xl transition-all",
                     selectedFlower === flower.id
-                      ? "bg-memorial-100 ring-2 ring-memorial-400"
+                      ? theme === "starry"
+                        ? "bg-white/20 ring-2 ring-purple-400"
+                        : "bg-memorial-100 ring-2 ring-memorial-400"
+                      : theme === "starry"
+                      ? "bg-white/5 hover:bg-white/10"
                       : "bg-memorial-50 hover:bg-memorial-100"
-                  }`}
+                  )}
                 >
                   <div className="text-2xl mb-1">{flower.emoji}</div>
-                  <div className="text-xs text-memorial-600">{flower.name}</div>
+                  <div
+                    className={cn(
+                      "text-xs",
+                      theme === "starry" ? "text-gray-300" : "text-memorial-600"
+                    )}
+                  >
+                    {flower.name}
+                  </div>
                 </button>
               ))}
             </div>
@@ -128,20 +175,35 @@ export default function FlowerArea({ flowers, onAddFlower }: FlowerAreaProps) {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="写下你的寄语（选填）..."
               rows={2}
-              className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all resize-none text-sm"
+              className={cn(
+                "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all resize-none text-sm",
+                theme === "starry"
+                  ? "bg-slate-700 text-gray-100 placeholder-gray-400 border-slate-600 focus:ring-2 focus:ring-purple-400/30 focus:border-purple-400"
+                  : "border-memorial-200 focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400"
+              )}
             />
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={() => setShowSelector(false)}
-              className="px-4 py-2 text-sm text-memorial-500 hover:text-memorial-700 transition-colors"
+              className={cn(
+                "px-4 py-2 text-sm transition-colors",
+                theme === "starry"
+                  ? "text-gray-400 hover:text-gray-200"
+                  : "text-memorial-500 hover:text-memorial-700"
+              )}
             >
               取消
             </button>
             <button
               onClick={handleGiveFlower}
-              className="flex-1 flex items-center justify-center gap-2 bg-memorial-700 text-white py-2.5 rounded-xl hover:bg-memorial-600 transition-colors text-sm font-medium"
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 text-white py-2.5 rounded-xl transition-colors text-sm font-medium",
+                theme === "starry"
+                  ? "bg-purple-600 hover:bg-purple-500"
+                  : "bg-memorial-700 hover:bg-memorial-600"
+              )}
             >
               <Send className="w-4 h-4" />
               献上花束
@@ -151,7 +213,12 @@ export default function FlowerArea({ flowers, onAddFlower }: FlowerAreaProps) {
       ) : (
         <button
           onClick={() => setShowSelector(true)}
-          className="w-full flex items-center justify-center gap-2 bg-memorial-700 text-white py-3.5 rounded-xl hover:bg-memorial-600 transition-colors font-medium"
+          className={cn(
+            "w-full flex items-center justify-center gap-2 text-white py-3.5 rounded-xl transition-colors font-medium",
+            theme === "starry"
+              ? "bg-purple-600 hover:bg-purple-500"
+              : "bg-memorial-700 hover:bg-memorial-600"
+          )}
         >
           <Flower2 className="w-5 h-5" />
           献上一束鲜花

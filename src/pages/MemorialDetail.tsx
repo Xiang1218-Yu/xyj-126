@@ -23,10 +23,14 @@ import FlowerArea from "@/components/FlowerArea";
 import CandleArea from "@/components/CandleArea";
 import QRCodeCard from "@/components/QRCodeCard";
 import PasswordProtected from "@/components/PasswordProtected";
+import ThemeSelector from "@/components/ThemeSelector";
+import { useTheme } from "@/hooks/useTheme";
+import { cn } from "@/lib/utils";
 
 export default function MemorialDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { theme, themeConfig } = useTheme();
   const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial, loadFamilyRelations, getRelationsForMemorial } =
     useMemorialStore();
 
@@ -132,114 +136,185 @@ export default function MemorialDetail() {
   };
 
   return (
-    <div className="min-h-screen pb-20 md:pt-20">
-      <div className="sticky top-16 md:top-20 z-30 bg-cream-50/90 backdrop-blur-md border-b border-memorial-100">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-memorial-600 hover:text-memorial-800"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="hidden sm:inline">返回</span>
-          </Link>
-
-          <div className="relative">
-            <button
-              onClick={() => setShowAdminMenu(!showAdminMenu)}
-              className="p-2 rounded-full hover:bg-memorial-100 transition-colors"
+    <div className="min-h-screen pb-20 md:pt-20 relative">
+      <ThemeSelector />
+      <div className="relative z-10">
+        <div className="sticky top-16 md:top-20 z-30 theme-topbar">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <Link
+              to="/"
+              className={cn(
+                "inline-flex items-center gap-2 transition-colors",
+                theme === "starry"
+                  ? "text-gray-300 hover:text-white"
+                  : "text-memorial-600 hover:text-memorial-800"
+              )}
             >
-              <Settings className="w-5 h-5 text-memorial-600" />
-            </button>
+              <ArrowLeft className="w-5 h-5" />
+              <span className="hidden sm:inline">返回</span>
+            </Link>
 
-            {showAdminMenu && (
-              <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-memorial-100 py-2 min-w-[140px] z-50">
+            <div className="flex items-center gap-1">
+              <div className="relative">
                 <button
-                  onClick={() => handleAdminAction("edit")}
-                  className="w-full px-4 py-2 text-left text-sm text-memorial-700 hover:bg-memorial-50 flex items-center gap-2"
+                  onClick={() => setShowAdminMenu(!showAdminMenu)}
+                  className={cn(
+                    "p-2 rounded-full transition-colors",
+                    theme === "starry"
+                      ? "hover:bg-white/10 text-gray-200"
+                      : "hover:bg-memorial-100 text-memorial-600"
+                  )}
                 >
-                  <Edit className="w-4 h-4" />
-                  编辑
+                  <Settings className="w-5 h-5" />
                 </button>
-                <button
-                  onClick={() => handleAdminAction("delete")}
-                  className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  删除
-                </button>
+
+                {showAdminMenu && (
+                  <div
+                    className={cn(
+                      "absolute right-0 top-10 rounded-xl shadow-lg py-2 min-w-[140px] z-50",
+                      theme === "starry"
+                        ? "bg-slate-800/95 border border-slate-600"
+                        : "bg-white border border-memorial-100"
+                    )}
+                  >
+                    <button
+                      onClick={() => handleAdminAction("edit")}
+                      className={cn(
+                        "w-full px-4 py-2 text-left text-sm flex items-center gap-2 transition-colors",
+                        theme === "starry"
+                          ? "text-gray-200 hover:bg-white/10"
+                          : "text-memorial-700 hover:bg-memorial-50"
+                      )}
+                    >
+                      <Edit className="w-4 h-4" />
+                      编辑
+                    </button>
+                    <button
+                      onClick={() => handleAdminAction("delete")}
+                      className="w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      删除
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
-      </div>
 
-      <section className="relative py-12 md:py-16 bg-gradient-to-b from-memorial-950/5 to-cream-100">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center animate-slide-up">
-            <div className="w-28 h-28 md:w-36 md:h-36 rounded-full mx-auto mb-5 overflow-hidden border-4 border-white shadow-lg bg-memorial-100">
-              {memorial.avatar ? (
-                <img
-                  src={memorial.avatar}
-                  alt={memorial.name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-memorial-400 text-4xl">
-                  🌿
+        <section className="relative py-12 md:py-16 theme-hero-section">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto text-center animate-slide-up">
+              <div
+                className={cn(
+                  "w-28 h-28 md:w-36 md:h-36 rounded-full mx-auto mb-5 overflow-hidden border-4 shadow-lg",
+                  theme === "starry" ? "border-slate-700 bg-slate-700" : "border-white bg-memorial-100"
+                )}
+              >
+                {memorial.avatar ? (
+                  <img
+                    src={memorial.avatar}
+                    alt={memorial.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className={cn(
+                      "w-full h-full flex items-center justify-center text-4xl",
+                      theme === "starry" ? "text-gray-400" : "text-memorial-400"
+                    )}
+                  >
+                    🌿
+                  </div>
+                )}
+              </div>
+
+              <h1
+                className={cn(
+                  "font-serif text-2xl md:text-3xl lg:text-4xl font-medium mb-2",
+                  theme === "starry" ? "text-gray-100" : "text-memorial-950"
+                )}
+              >
+                {memorial.name}
+              </h1>
+
+              <div
+                className={cn(
+                  "flex items-center justify-center gap-3 text-sm md:text-base mb-3",
+                  theme === "starry" ? "text-gray-300" : "text-memorial-600"
+                )}
+              >
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" />
+                  {formatDate(memorial.birthDate)} — {formatDate(memorial.deathDate)}
+                </span>
+                <span className={theme === "starry" ? "text-gray-500" : "text-memorial-300"}>
+                  |
+                </span>
+                <span>享年 {age} 岁</span>
+              </div>
+
+              {memorial.epitaph && (
+                <p
+                  className={cn(
+                    "font-serif text-base md:text-lg italic mt-3",
+                    theme === "starry" ? "text-gray-300" : "text-memorial-700"
+                  )}
+                >
+                  "{memorial.epitaph}"
+                </p>
+              )}
+
+              {memorial.reminderEnabled && (
+                <div
+                  className={cn(
+                    "mt-5 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs md:text-sm",
+                    theme === "starry"
+                      ? "bg-amber-500/20 text-amber-300"
+                      : "bg-gold-100/80 text-gold-700"
+                  )}
+                >
+                  <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                  距离忌日还有 {daysUntil} 天
                 </div>
               )}
             </div>
-
-            <h1 className="font-serif text-2xl md:text-3xl lg:text-4xl text-memorial-950 font-medium mb-2">
-              {memorial.name}
-            </h1>
-
-            <div className="flex items-center justify-center gap-3 text-memorial-600 text-sm md:text-base mb-3">
-              <span className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
-                {formatDate(memorial.birthDate)} — {formatDate(memorial.deathDate)}
-              </span>
-              <span className="text-memorial-300">|</span>
-              <span>享年 {age} 岁</span>
-            </div>
-
-            {memorial.epitaph && (
-              <p className="font-serif text-base md:text-lg text-memorial-700 italic mt-3">
-                "{memorial.epitaph}"
-              </p>
-            )}
-
-            {memorial.reminderEnabled && (
-              <div className="mt-5 inline-flex items-center gap-2 bg-gold-100/80 text-gold-700 px-4 py-1.5 rounded-full text-xs md:text-sm">
-                <Clock className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                距离忌日还有 {daysUntil} 天
-              </div>
-            )}
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="py-8 md:py-12">
+      <section className="py-8 md:py-12 relative z-10">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6">
               <div className="lg:col-span-8 space-y-5 md:space-y-6">
                 {memorial.biography && (
-                  <div className="bg-white rounded-2xl p-5 md:p-6 shadow-sm">
-                    <h3 className="font-serif text-lg md:text-xl text-memorial-950 mb-4">
+                  <div className="theme-card rounded-2xl p-5 md:p-6 shadow-sm">
+                    <h3
+                      className={cn(
+                        "font-serif text-lg md:text-xl mb-4",
+                        theme === "starry" ? "text-gray-100" : "text-memorial-950"
+                      )}
+                    >
                       📖 生平介绍
                     </h3>
                     <div className="prose prose-memorial max-w-none">
-                      <p className="text-memorial-700 leading-relaxed whitespace-pre-wrap font-serif text-sm md:text-base">
+                      <p
+                        className={cn(
+                          "leading-relaxed whitespace-pre-wrap font-serif text-sm md:text-base",
+                          theme === "starry" ? "text-gray-300" : "text-memorial-700"
+                        )}
+                      >
                         {memorial.biography}
                       </p>
                     </div>
                   </div>
                 )}
 
-                <PhotoGallery photos={memorial.photos} />
+                <PhotoGallery photos={memorial.photos} theme={theme} />
                 <MessageWall
                   messages={memorial.messages}
+                  theme={theme}
                   onAddMessage={(author, content) => {
                     if (id) addMessage(id, { author, content });
                   }}
@@ -250,29 +325,48 @@ export default function MemorialDetail() {
                 <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
                   <FlowerArea
                     flowers={memorial.flowers}
+                    theme={theme}
                     onAddFlower={(type, message) => {
                       if (id) addFlower(id, { type, message });
                     }}
                   />
                   <CandleArea
                     candles={memorial.candles}
+                    theme={theme}
                     onAddCandle={(message) => {
                       if (id) addCandle(id, { message });
                     }}
                   />
                 </div>
 
-                <div className="bg-white rounded-2xl p-5 shadow-sm">
-                  <h3 className="font-serif text-lg text-memorial-950 mb-4 flex items-center gap-2">
+                <div className="theme-card rounded-2xl p-5 shadow-sm">
+                  <h3
+                    className={cn(
+                      "font-serif text-lg mb-4 flex items-center gap-2",
+                      theme === "starry" ? "text-gray-100" : "text-memorial-950"
+                    )}
+                  >
                     <QrCode className="w-5 h-5" />
                     二维码铭牌
                   </h3>
                   <div className="flex items-center gap-4">
-                    <div className="w-24 h-24 shrink-0 bg-white rounded-lg border border-memorial-100 flex items-center justify-center overflow-hidden">
+                    <div
+                      className={cn(
+                        "w-24 h-24 shrink-0 rounded-lg flex items-center justify-center overflow-hidden",
+                        theme === "starry"
+                          ? "bg-white/90 border border-slate-600"
+                          : "bg-white border border-memorial-100"
+                      )}
+                    >
                       <QRCodeCard url={fullUrl} name={memorial.name} compact />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm text-memorial-600 mb-3">
+                      <p
+                        className={cn(
+                          "text-sm mb-3",
+                          theme === "starry" ? "text-gray-300" : "text-memorial-600"
+                        )}
+                      >
                         扫码查看{memorial.name}的纪念页
                       </p>
                       <button
@@ -285,7 +379,12 @@ export default function MemorialDetail() {
                             link.click();
                           }
                         }}
-                        className="text-sm text-memorial-700 hover:text-memorial-900 underline"
+                        className={cn(
+                          "text-sm underline",
+                          theme === "starry"
+                            ? "text-gray-300 hover:text-white"
+                            : "text-memorial-700 hover:text-memorial-900"
+                        )}
                       >
                         下载二维码
                       </button>
@@ -294,8 +393,13 @@ export default function MemorialDetail() {
                 </div>
 
                 {id && getRelationsForMemorial(id).filter(({ otherMemorial }) => !otherMemorial.isPrivate).length > 0 && (
-                  <div className="bg-white rounded-2xl p-5 shadow-sm">
-                    <h3 className="font-serif text-lg text-memorial-950 mb-4 flex items-center gap-2">
+                  <div className="theme-card rounded-2xl p-5 shadow-sm">
+                    <h3
+                      className={cn(
+                        "font-serif text-lg mb-4 flex items-center gap-2",
+                        theme === "starry" ? "text-gray-100" : "text-memorial-950"
+                      )}
+                    >
                       <Users className="w-5 h-5" />
                       亲属关系
                     </h3>
@@ -306,9 +410,19 @@ export default function MemorialDetail() {
                           <Link
                             key={otherMemorial.id}
                             to={`/memorial/${otherMemorial.id}`}
-                            className="flex items-center gap-3 p-3 rounded-xl bg-memorial-50 hover:bg-memorial-100 transition-colors"
+                            className={cn(
+                              "flex items-center gap-3 p-3 rounded-xl transition-colors",
+                              theme === "starry"
+                                ? "bg-white/5 hover:bg-white/10"
+                                : "bg-memorial-50 hover:bg-memorial-100"
+                            )}
                           >
-                            <div className="w-12 h-12 rounded-full bg-memorial-200 flex items-center justify-center flex-shrink-0">
+                            <div
+                              className={cn(
+                                "w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0",
+                                theme === "starry" ? "bg-slate-600" : "bg-memorial-200"
+                              )}
+                            >
                               {otherMemorial.avatar ? (
                                 <img
                                   src={otherMemorial.avatar}
@@ -316,24 +430,51 @@ export default function MemorialDetail() {
                                   className="w-full h-full rounded-full object-cover"
                                 />
                               ) : (
-                                <span className="font-serif text-memorial-700 text-lg">
+                                <span
+                                  className={cn(
+                                    "font-serif text-lg",
+                                    theme === "starry" ? "text-gray-200" : "text-memorial-700"
+                                  )}
+                                >
                                   {otherMemorial.name.charAt(0)}
                                 </span>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-memorial-800 truncate">
+                              <p
+                                className={cn(
+                                  "font-medium truncate",
+                                  theme === "starry" ? "text-gray-200" : "text-memorial-800"
+                                )}
+                              >
                                 {otherMemorial.name}
                               </p>
-                              <p className="text-sm text-memorial-500">{label}</p>
+                              <p
+                                className={cn(
+                                  "text-sm",
+                                  theme === "starry" ? "text-gray-400" : "text-memorial-500"
+                                )}
+                              >
+                                {label}
+                              </p>
                             </div>
                           </Link>
                         ))}
                     </div>
-                    <div className="mt-4 pt-4 border-t border-memorial-100">
+                    <div
+                      className={cn(
+                        "mt-4 pt-4 border-t",
+                        theme === "starry" ? "border-slate-600" : "border-memorial-100"
+                      )}
+                    >
                       <Link
                         to="/family-network"
-                        className="inline-flex items-center gap-1 text-sm text-memorial-600 hover:text-memorial-800 transition-colors"
+                        className={cn(
+                          "inline-flex items-center gap-1 text-sm transition-colors",
+                          theme === "starry"
+                            ? "text-gray-300 hover:text-white"
+                            : "text-memorial-600 hover:text-memorial-800"
+                        )}
                       >
                         <Users className="w-4 h-4" />
                         查看完整亲属网络
@@ -349,17 +490,37 @@ export default function MemorialDetail() {
 
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-fade-in">
-            <h3 className="font-serif text-xl text-memorial-950 mb-2">
+          <div
+            className={cn(
+              "rounded-2xl p-6 max-w-sm w-full animate-fade-in",
+              theme === "starry" ? "bg-slate-800" : "bg-white"
+            )}
+          >
+            <h3
+              className={cn(
+                "font-serif text-xl mb-2",
+                theme === "starry" ? "text-gray-100" : "text-memorial-950"
+              )}
+            >
               确认删除
             </h3>
-            <p className="text-memorial-600 mb-6 text-sm">
+            <p
+              className={cn(
+                "mb-6 text-sm",
+                theme === "starry" ? "text-gray-300" : "text-memorial-600"
+              )}
+            >
               删除后将无法恢复，确定要删除这个纪念页吗？
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 py-3 border border-memorial-200 text-memorial-700 rounded-xl hover:bg-memorial-50 transition-colors text-sm"
+                className={cn(
+                  "flex-1 py-3 border rounded-xl transition-colors text-sm",
+                  theme === "starry"
+                    ? "border-slate-600 text-gray-300 hover:bg-white/10"
+                    : "border-memorial-200 text-memorial-700 hover:bg-memorial-50"
+                )}
               >
                 取消
               </button>
@@ -380,23 +541,23 @@ export default function MemorialDetail() {
           description={`请输入管理密码以${passwordAction === "edit" ? "编辑" : "删除"}纪念页`}
           onSubmit={handlePasswordSubmit}
           onCancel={() => setShowPasswordModal(false)}
+          theme={theme}
         />
       )}
+      </div>
     </div>
   );
 }
 
-function PasswordModal({
-  title,
-  description,
-  onSubmit,
-  onCancel,
-}: {
+interface PasswordModalProps {
   title: string;
   description: string;
   onSubmit: (password: string) => void;
   onCancel: () => void;
-}) {
+  theme: string;
+}
+
+function PasswordModal({ title, description, onSubmit, onCancel, theme }: PasswordModalProps) {
   const [password, setPassword] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -406,29 +567,63 @@ function PasswordModal({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-fade-in">
-        <h3 className="font-serif text-xl text-memorial-950 mb-2">{title}</h3>
-        <p className="text-memorial-600 mb-6 text-sm">{description}</p>
+      <div
+        className={cn(
+          "rounded-2xl p-6 max-w-sm w-full animate-fade-in",
+          theme === "starry" ? "bg-slate-800" : "bg-white"
+        )}
+      >
+        <h3
+          className={cn(
+            "font-serif text-xl mb-2",
+            theme === "starry" ? "text-gray-100" : "text-memorial-950"
+          )}
+        >
+          {title}
+        </h3>
+        <p
+          className={cn(
+            "mb-6 text-sm",
+            theme === "starry" ? "text-gray-300" : "text-memorial-600"
+          )}
+        >
+          {description}
+        </p>
         <form onSubmit={handleSubmit}>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="请输入管理密码"
-            className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all mb-4"
+            className={cn(
+              "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all mb-4",
+              theme === "starry"
+                ? "bg-slate-700 text-gray-100 placeholder-gray-400 border-slate-600 focus:ring-2 focus:ring-purple-400/30 focus:border-purple-400"
+                : "border-memorial-200 focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400"
+            )}
             autoFocus
           />
           <div className="flex gap-3">
             <button
               type="button"
               onClick={onCancel}
-              className="flex-1 py-3 border border-memorial-200 text-memorial-700 rounded-xl hover:bg-memorial-50 transition-colors text-sm"
+              className={cn(
+                "flex-1 py-3 border rounded-xl transition-colors text-sm",
+                theme === "starry"
+                  ? "border-slate-600 text-gray-300 hover:bg-white/10"
+                  : "border-memorial-200 text-memorial-700 hover:bg-memorial-50"
+              )}
             >
               取消
             </button>
             <button
               type="submit"
-              className="flex-1 py-3 bg-memorial-700 text-white rounded-xl hover:bg-memorial-600 transition-colors text-sm font-medium"
+              className={cn(
+                "flex-1 py-3 text-white rounded-xl transition-colors text-sm font-medium",
+                theme === "starry"
+                  ? "bg-purple-600 hover:bg-purple-500"
+                  : "bg-memorial-700 hover:bg-memorial-600"
+              )}
             >
               确认
             </button>

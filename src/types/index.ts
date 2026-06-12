@@ -143,3 +143,18 @@ export interface FamilyRelation {
   note?: string;
   createdAt: string;
 }
+
+export type VisualTheme = "default" | "sakura" | "autumn" | "snow" | "starry";
+
+export interface ThemeConfig {
+  id: VisualTheme;
+  name: string;
+  icon: string;
+  description: string;
+  bgGradient: string;
+  textPrimary: string;
+  textSecondary: string;
+  accent: string;
+  cardBg: string;
+  cardBorder: string;
+}

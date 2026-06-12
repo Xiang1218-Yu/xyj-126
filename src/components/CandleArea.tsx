@@ -2,13 +2,15 @@ import { useState } from "react";
 import { Flame, Send } from "lucide-react";
 import type { Candle } from "@/types";
 import Danmaku from "./Danmaku";
+import { cn } from "@/lib/utils";
 
 interface CandleAreaProps {
   candles: Candle[];
   onAddCandle: (message: string) => void;
+  theme?: string;
 }
 
-export default function CandleArea({ candles, onAddCandle }: CandleAreaProps) {
+export default function CandleArea({ candles, onAddCandle, theme = "default" }: CandleAreaProps) {
   const [message, setMessage] = useState("");
   const [showInput, setShowInput] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
@@ -24,13 +26,34 @@ export default function CandleArea({ candles, onAddCandle }: CandleAreaProps) {
   const displayCandles = candles.slice(-20);
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm">
+    <div className="theme-card rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
-        <h3 className="font-serif text-xl text-memorial-950">🕯️ 点烛台</h3>
-        <span className="text-memorial-500 text-sm">共 {candles.length} 盏烛</span>
+        <h3
+          className={cn(
+            "font-serif text-xl",
+            theme === "starry" ? "text-gray-100" : "text-memorial-950"
+          )}
+        >
+          🕯️ 点烛台
+        </h3>
+        <span
+          className={cn(
+            "text-sm",
+            theme === "starry" ? "text-gray-400" : "text-memorial-500"
+          )}
+        >
+          共 {candles.length} 盏烛
+        </span>
       </div>
 
-      <div className="relative min-h-[180px] bg-gradient-to-b from-memorial-950/5 to-transparent rounded-xl p-6 mb-6 overflow-hidden">
+      <div
+        className={cn(
+          "relative min-h-[180px] rounded-xl p-6 mb-6 overflow-hidden",
+          theme === "starry"
+            ? "bg-gradient-to-b from-slate-700/30 to-transparent"
+            : "bg-gradient-to-b from-memorial-950/5 to-transparent"
+        )}
+      >
         <Danmaku items={candles} variant="candle" />
 
         <div className="flex flex-wrap justify-center gap-4">
@@ -55,7 +78,12 @@ export default function CandleArea({ candles, onAddCandle }: CandleAreaProps) {
           ))}
 
           {candles.length === 0 && (
-            <div className="text-center py-8 text-memorial-400">
+            <div
+              className={cn(
+                "text-center py-8",
+                theme === "starry" ? "text-gray-500" : "text-memorial-400"
+              )}
+            >
               <Flame className="w-12 h-12 mx-auto mb-2 opacity-50" />
               <p className="text-sm">为逝者点燃一盏心灯</p>
             </div>
@@ -76,12 +104,22 @@ export default function CandleArea({ candles, onAddCandle }: CandleAreaProps) {
             onChange={(e) => setMessage(e.target.value)}
             placeholder="写下你的寄语..."
             rows={2}
-            className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all resize-none text-sm"
+            className={cn(
+              "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all resize-none text-sm",
+              theme === "starry"
+                ? "bg-slate-700 text-gray-100 placeholder-gray-400 border-slate-600 focus:ring-2 focus:ring-purple-400/30 focus:border-purple-400"
+                : "border-memorial-200 focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400"
+            )}
           />
           <div className="flex gap-2">
             <button
               onClick={() => setShowInput(false)}
-              className="px-4 py-2 text-sm text-memorial-500 hover:text-memorial-700 transition-colors"
+              className={cn(
+                "px-4 py-2 text-sm transition-colors",
+                theme === "starry"
+                  ? "text-gray-400 hover:text-gray-200"
+                  : "text-memorial-500 hover:text-memorial-700"
+              )}
             >
               取消
             </button>

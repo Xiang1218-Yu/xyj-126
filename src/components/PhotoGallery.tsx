@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { X, ChevronLeft, ChevronRight, Image } from "lucide-react";
 import type { Photo } from "@/types";
+import { cn } from "@/lib/utils";
 
 interface PhotoGalleryProps {
   photos: Photo[];
+  theme?: string;
 }
 
-export default function PhotoGallery({ photos }: PhotoGalleryProps) {
+export default function PhotoGallery({ photos, theme = "default" }: PhotoGalleryProps) {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const openLightbox = (index: number) => {
@@ -35,9 +37,21 @@ export default function PhotoGallery({ photos }: PhotoGalleryProps) {
 
   if (photos.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-6 shadow-sm">
-        <h3 className="font-serif text-xl text-memorial-950 mb-4">📷 相册</h3>
-        <div className="text-center py-12 text-memorial-400">
+      <div className="theme-card rounded-2xl p-6 shadow-sm">
+        <h3
+          className={cn(
+            "font-serif text-xl mb-4",
+            theme === "starry" ? "text-gray-100" : "text-memorial-950"
+          )}
+        >
+          📷 相册
+        </h3>
+        <div
+          className={cn(
+            "text-center py-12",
+            theme === "starry" ? "text-gray-500" : "text-memorial-400"
+          )}
+        >
           <Image className="w-12 h-12 mx-auto mb-2 opacity-50" />
           <p className="text-sm">暂无照片</p>
         </div>
@@ -46,10 +60,24 @@ export default function PhotoGallery({ photos }: PhotoGalleryProps) {
   }
 
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm">
+    <div className="theme-card rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-serif text-xl text-memorial-950">📷 相册</h3>
-        <span className="text-memorial-500 text-sm">{photos.length} 张照片</span>
+        <h3
+          className={cn(
+            "font-serif text-xl",
+            theme === "starry" ? "text-gray-100" : "text-memorial-950"
+          )}
+        >
+          📷 相册
+        </h3>
+        <span
+          className={cn(
+            "text-sm",
+            theme === "starry" ? "text-gray-400" : "text-memorial-500"
+          )}
+        >
+          {photos.length} 张照片
+        </span>
       </div>
 
       <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
