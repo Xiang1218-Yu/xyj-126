@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { Palette, X } from "lucide-react";
-import { useTheme } from "@/hooks/useTheme";
+import { Palette, X, Lock } from "lucide-react";
+import { useMemorialStore } from "@/store/memorialStore";
+import { THEME_LIST, getThemeConfig } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
+import { verifyPassword } from "@/utils";
 import type { VisualTheme } from "@/types";
 
 interface ThemeParticlesProps {
   theme: VisualTheme;
 }
 
-function ThemeParticles({ theme }: ThemeParticlesProps) {
+export function ThemeParticles({ theme }: ThemeParticlesProps) {
   if (theme === "default") return null;
 
   if (theme === "sakura") {
@@ -130,11 +132,137 @@ function ThemeParticles({ theme }: ThemeParticlesProps) {
   return null;
 }
 
-export { ThemeParticles };
+interface ThemePasswordModalProps {
+  onSubmit: (password: string) => void;
+  onCancel: () => void;
+  theme: VisualTheme;
+}
 
-export default function ThemeSelector() {
-  const { theme, setTheme, THEME_LIST } = useTheme();
+function ThemePasswordModal({ onSubmit, onCancel, theme }: ThemePasswordModalProps) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password.trim()) {
+      setError("请输入管理密码");
+      return;
+    }
+    onSubmit(password);
+  };
+
+  const isStarry = theme === "starry";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div
+        className={cn(
+          "rounded-2xl p-6 max-w-sm w-full animate-fade-in",
+          isStarry ? "bg-slate-800" : "bg-white"
+        )}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <Lock className={cn("w-5 h-5", isStarry ? "text-amber-400" : "text-gold-600")} />
+          <h3 className={cn("font-serif text-xl", isStarry ? "text-gray-100" : "text-memorial-950")}>
+            管理验证
+          </h3>
+        </div>
+        <p className={cn("mb-6 text-sm", isStarry ? "text-gray-300" : "text-memorial-600")}>
+          切换主题需要管理权限，请输入管理密码
+        </p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              setError("");
+            }}
+            placeholder="请输入管理密码"
+            className={cn(
+              "w-full px-4 py-3 border rounded-xl focus:outline-none transition-all mb-2",
+              isStarry
+                ? "bg-slate-700 text-gray-100 placeholder-gray-400 border-slate-600 focus:ring-2 focus:ring-purple-400/30 focus:border-purple-400"
+                : "border-memorial-200 focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400"
+            )}
+            autoFocus
+          />
+          {error && (
+            <p className="text-red-500 text-xs mb-3">{error}</p>
+          )}
+          <div className="flex gap-3 mt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className={cn(
+                "flex-1 py-3 border rounded-xl transition-colors text-sm",
+                isStarry
+                  ? "border-slate-600 text-gray-300 hover:bg-white/10"
+                  : "border-memorial-200 text-memorial-700 hover:bg-memorial-50"
+              )}
+            >
+              取消
+            </button>
+            <button
+              type="submit"
+              className={cn(
+                "flex-1 py-3 text-white rounded-xl transition-colors text-sm font-medium",
+                isStarry ? "bg-purple-600 hover:bg-purple-500" : "bg-memorial-700 hover:bg-memorial-600"
+              )}
+            >
+              确认
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+interface ThemeSelectorProps {
+  memorialId: string;
+  currentTheme: VisualTheme;
+  adminPasswordHash: string;
+}
+
+export default function ThemeSelector({
+  memorialId,
+  currentTheme,
+  adminPasswordHash,
+}: ThemeSelectorProps) {
+  const { setMemorialTheme } = useMemorialStore();
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingTheme, setPendingTheme] = useState<VisualTheme | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const themeConfig = getThemeConfig(currentTheme);
+  const isStarry = currentTheme === "starry";
+
+  const handleThemeSelect = (newTheme: VisualTheme) => {
+    if (newTheme === currentTheme) {
+      setIsOpen(false);
+      return;
+    }
+
+    if (adminPasswordHash) {
+      setPendingTheme(newTheme);
+      setShowPasswordModal(true);
+      setIsOpen(false);
+    } else {
+      setMemorialTheme(memorialId, newTheme);
+      setIsOpen(false);
+    }
+  };
+
+  const handlePasswordSubmit = (password: string) => {
+    const isValid = verifyPassword(password, adminPasswordHash);
+    if (isValid && pendingTheme) {
+      setMemorialTheme(memorialId, pendingTheme);
+      setPendingTheme(null);
+      setShowPasswordModal(false);
+    } else {
+      alert("密码错误");
+    }
+  };
 
   return (
     <>
@@ -143,7 +271,7 @@ export default function ThemeSelector() {
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "p-2 rounded-full transition-colors",
-            theme === "starry"
+            isStarry
               ? "hover:bg-white/10 text-gray-200"
               : "hover:bg-memorial-100 text-memorial-600"
           )}
@@ -156,29 +284,32 @@ export default function ThemeSelector() {
           <div
             className={cn(
               "absolute right-0 top-10 rounded-xl shadow-lg py-2 min-w-[200px] z-50 animate-fade-in",
-              theme === "starry"
+              isStarry
                 ? "bg-slate-800/95 border border-slate-600"
                 : "bg-white border border-memorial-100"
             )}
           >
-            <div className="flex items-center justify-between px-4 py-2 border-b border-opacity-30"
+            <div
+              className="flex items-center justify-between px-4 py-2 border-b border-opacity-30"
               style={{
-                borderColor: theme === "starry" ? "rgba(148, 163, 184, 0.3)" : "rgba(232, 235, 228, 0.8)",
+                borderColor: isStarry
+                  ? "rgba(148, 163, 184, 0.3)"
+                  : "rgba(232, 235, 228, 0.8)",
               }}
             >
               <span
                 className={cn(
                   "text-sm font-medium",
-                  theme === "starry" ? "text-gray-200" : "text-memorial-700"
+                  isStarry ? "text-gray-200" : "text-memorial-700"
                 )}
               >
-                视觉主题
+                纪念页主题
               </span>
               <button
                 onClick={() => setIsOpen(false)}
                 className={cn(
                   "p-1 rounded-md transition-colors",
-                  theme === "starry"
+                  isStarry
                     ? "hover:bg-white/10 text-gray-400"
                     : "hover:bg-memorial-100 text-memorial-500"
                 )}
@@ -188,20 +319,18 @@ export default function ThemeSelector() {
             </div>
             <div className="p-2 space-y-1">
               {THEME_LIST.map((t) => {
-                const isActive = theme === t.id;
+                const isActive = currentTheme === t.id;
                 return (
                   <button
                     key={t.id}
-                    onClick={() => {
-                      setTheme(t.id);
-                    }}
+                    onClick={() => handleThemeSelect(t.id)}
                     className={cn(
                       "w-full px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all text-left",
                       isActive
-                        ? theme === "starry"
+                        ? isStarry
                           ? "bg-white/15"
                           : "bg-memorial-100"
-                        : theme === "starry"
+                        : isStarry
                         ? "hover:bg-white/10"
                         : "hover:bg-memorial-50"
                     )}
@@ -211,7 +340,7 @@ export default function ThemeSelector() {
                       <div
                         className={cn(
                           "text-sm font-medium",
-                          theme === "starry" ? "text-gray-100" : "text-memorial-800"
+                          isStarry ? "text-gray-100" : "text-memorial-800"
                         )}
                       >
                         {t.name}
@@ -219,7 +348,7 @@ export default function ThemeSelector() {
                       <div
                         className={cn(
                           "text-xs truncate",
-                          theme === "starry" ? "text-gray-400" : "text-memorial-500"
+                          isStarry ? "text-gray-400" : "text-memorial-500"
                         )}
                       >
                         {t.description}
@@ -229,7 +358,7 @@ export default function ThemeSelector() {
                       <span
                         className={cn(
                           "w-2 h-2 rounded-full flex-shrink-0",
-                          theme === "starry" ? "bg-purple-400" : "bg-memorial-600"
+                          isStarry ? "bg-purple-400" : "bg-memorial-600"
                         )}
                       />
                     )}
@@ -237,11 +366,35 @@ export default function ThemeSelector() {
                 );
               })}
             </div>
+            {adminPasswordHash && (
+              <div
+                className={cn(
+                  "px-4 py-2 border-t flex items-center gap-1.5 text-xs",
+                  isStarry
+                    ? "border-slate-600 text-gray-500"
+                    : "border-memorial-100 text-memorial-400"
+                )}
+              >
+                <Lock className="w-3 h-3" />
+                切换主题需验证管理密码
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <ThemeParticles theme={theme} />
+      <ThemeParticles theme={currentTheme} />
+
+      {showPasswordModal && (
+        <ThemePasswordModal
+          theme={currentTheme}
+          onSubmit={handlePasswordSubmit}
+          onCancel={() => {
+            setShowPasswordModal(false);
+            setPendingTheme(null);
+          }}
+        />
+      )}
     </>
   );
 }

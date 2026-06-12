@@ -24,13 +24,11 @@ import CandleArea from "@/components/CandleArea";
 import QRCodeCard from "@/components/QRCodeCard";
 import PasswordProtected from "@/components/PasswordProtected";
 import ThemeSelector from "@/components/ThemeSelector";
-import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
 
 export default function MemorialDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { theme, themeConfig } = useTheme();
   const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial, loadFamilyRelations, getRelationsForMemorial } =
     useMemorialStore();
 
@@ -84,6 +82,7 @@ export default function MemorialDetail() {
   const age = calculateAge(memorial.birthDate, memorial.deathDate);
   const daysUntil = daysUntilDeathAnniversary(memorial.deathDate);
   const fullUrl = `${window.location.origin}${window.location.pathname}`;
+  const theme = memorial.theme;
 
   const verifyAdminPassword = async (password: string): Promise<boolean> => {
     if (!memorial.adminPassword && !memorial.password) {
@@ -136,8 +135,12 @@ export default function MemorialDetail() {
   };
 
   return (
-    <div className="min-h-screen pb-20 md:pt-20 relative">
-      <ThemeSelector />
+    <div className={cn("memorial-page pb-20 md:pt-20 relative", `theme-${theme}`)}>
+      <ThemeSelector
+        memorialId={memorial.id}
+        currentTheme={memorial.theme}
+        adminPasswordHash={memorial.adminPassword || memorial.password}
+      />
       <div className="relative z-10">
         <div className="sticky top-16 md:top-20 z-30 theme-topbar">
           <div className="container mx-auto px-4 py-3 flex items-center justify-between">

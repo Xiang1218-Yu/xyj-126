@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType } from "@/types";
+import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme } from "@/types";
 import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
 import { generateId, hashPassword } from "@/utils";
 
@@ -27,6 +27,7 @@ interface MemorialState {
   getRelationsForMemorial: (memorialId: string) => Array<{ relation: FamilyRelation; otherMemorial: Memorial; label: string }>;
   getRelatedMemorials: (memorialId: string) => Memorial[];
   getAllFamilyRelations: () => FamilyRelation[];
+  setMemorialTheme: (memorialId: string, theme: VisualTheme) => void;
 }
 
 const STORAGE_KEY = "memorial_memorials";
@@ -49,6 +50,7 @@ const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
   adminPassword: "",
   reminderEnabled: false,
   reminderDays: 7,
+  theme: "default",
 };
 
 export const useMemorialStore = create<MemorialState>((set, get) => ({
@@ -352,6 +354,15 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
   getAllFamilyRelations: () => {
     return get().familyRelations;
   },
+
+  setMemorialTheme: (memorialId, theme) => {
+    set((state) => ({
+      memorials: state.memorials.map((m) =>
+        m.id === memorialId ? { ...m, theme, updatedAt: new Date().toISOString() } : m
+      ),
+    }));
+    get().saveMemorials();
+  },
 }));
 
 function getSampleMemorials(): Promise<Memorial[]> {
@@ -401,6 +412,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
         adminPassword: "",
         reminderEnabled: true,
         reminderDays: 7,
+        theme: "default",
         createdAt: sample1Date.toISOString(),
         updatedAt: sample1Date.toISOString(),
       },
@@ -440,6 +452,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
         adminPassword: "",
         reminderEnabled: true,
         reminderDays: 3,
+        theme: "sakura",
         createdAt: sample2Date.toISOString(),
         updatedAt: sample2Date.toISOString(),
       },
@@ -473,6 +486,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
         adminPassword: privatePassword,
         reminderEnabled: false,
         reminderDays: 7,
+        theme: "starry",
         createdAt: new Date(sample2Date.getTime() - 86400000 * 30).toISOString(),
         updatedAt: new Date(sample2Date.getTime() - 86400000 * 30).toISOString(),
       },
@@ -485,6 +499,7 @@ async function migrateMemorials(memorials: Memorial[]): Promise<Memorial[]> {
     ...m,
     adminPassword: m.adminPassword ?? "",
     gender: m.gender ?? "unknown",
+    theme: (m.theme as VisualTheme) ?? "default",
   }));
 }
 

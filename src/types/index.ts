@@ -45,6 +45,7 @@ export interface Memorial {
   adminPassword: string;
   reminderEnabled: boolean;
   reminderDays: number;
+  theme: VisualTheme;
   createdAt: string;
   updatedAt: string;
 }

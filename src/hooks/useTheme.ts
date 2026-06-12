@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import type { VisualTheme, ThemeConfig } from "@/types";
 
 export const THEME_CONFIGS: Record<VisualTheme, ThemeConfig> = {
@@ -66,28 +65,6 @@ export const THEME_CONFIGS: Record<VisualTheme, ThemeConfig> = {
 
 export const THEME_LIST: ThemeConfig[] = Object.values(THEME_CONFIGS);
 
-const STORAGE_KEY = "memorial_visual_theme";
-
-export function useTheme() {
-  const [theme, setTheme] = useState<VisualTheme>(() => {
-    const savedTheme = localStorage.getItem(STORAGE_KEY) as VisualTheme;
-    if (savedTheme && THEME_CONFIGS[savedTheme]) {
-      return savedTheme;
-    }
-    return "default";
-  });
-
-  useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem(STORAGE_KEY, theme);
-  }, [theme]);
-
-  const themeConfig = THEME_CONFIGS[theme];
-
-  return {
-    theme,
-    themeConfig,
-    setTheme,
-    THEME_LIST,
-  };
+export function getThemeConfig(theme: VisualTheme): ThemeConfig {
+  return THEME_CONFIGS[theme] || THEME_CONFIGS.default;
 }

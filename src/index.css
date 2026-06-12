@@ -25,24 +25,30 @@ body {
   background: linear-gradient(180deg, #faf7f0 0%, #f5efe1 100%);
 }
 
-[data-theme="sakura"] body {
+#root {
+  min-height: 100vh;
+}
+
+.memorial-page {
+  min-height: 100vh;
+  position: relative;
+  background: linear-gradient(180deg, #faf7f0 0%, #f5efe1 100%);
+}
+
+.memorial-page.theme-sakura {
   background: linear-gradient(180deg, #fff5f7 0%, #ffe4ec 50%, #ffd1dc 100%);
 }
 
-[data-theme="autumn"] body {
+.memorial-page.theme-autumn {
   background: linear-gradient(180deg, #fff8e7 0%, #ffe8c8 50%, #f5c896 100%);
 }
 
-[data-theme="snow"] body {
+.memorial-page.theme-snow {
   background: linear-gradient(180deg, #f0f7ff 0%, #dcebf8 50%, #c5dbed 100%);
 }
 
-[data-theme="starry"] body {
+.memorial-page.theme-starry {
   background: linear-gradient(180deg, #0f1937 0%, #1a2547 50%, #2a3a5f 100%);
-}
-
-#root {
-  min-height: 100vh;
 }
 
 .font-serif {
@@ -206,22 +212,22 @@ body {
   border: 1px solid #e8ebe4;
 }
 
-[data-theme="sakura"] .theme-card {
+.theme-sakura .theme-card {
   background: rgba(255, 255, 255, 0.85);
   border: 1px solid #ffc8d8;
 }
 
-[data-theme="autumn"] .theme-card {
+.theme-autumn .theme-card {
   background: rgba(255, 253, 248, 0.9);
   border: 1px solid #e8c99b;
 }
 
-[data-theme="snow"] .theme-card {
+.theme-snow .theme-card {
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid #d0e0f0;
 }
 
-[data-theme="starry"] .theme-card {
+.theme-starry .theme-card {
   background: rgba(30, 40, 70, 0.85);
   border: 1px solid #3a4a70;
 }
@@ -230,19 +236,19 @@ body {
   color: #1a3a2f;
 }
 
-[data-theme="sakura"] .theme-text-primary {
+.theme-sakura .theme-text-primary {
   color: #4a2c3a;
 }
 
-[data-theme="autumn"] .theme-text-primary {
+.theme-autumn .theme-text-primary {
   color: #4a2c1a;
 }
 
-[data-theme="snow"] .theme-text-primary {
+.theme-snow .theme-text-primary {
   color: #1e3a5f;
 }
 
-[data-theme="starry"] .theme-text-primary {
+.theme-starry .theme-text-primary {
   color: #e8ecf5;
 }
 
@@ -250,19 +256,19 @@ body {
   color: #6f7e61;
 }
 
-[data-theme="sakura"] .theme-text-secondary {
+.theme-sakura .theme-text-secondary {
   color: #a65c7a;
 }
 
-[data-theme="autumn"] .theme-text-secondary {
+.theme-autumn .theme-text-secondary {
   color: #a0522d;
 }
 
-[data-theme="snow"] .theme-text-secondary {
+.theme-snow .theme-text-secondary {
   color: #4a6fa5;
 }
 
-[data-theme="starry"] .theme-text-secondary {
+.theme-starry .theme-text-secondary {
   color: #9ca8c8;
 }
 
@@ -272,22 +278,22 @@ body {
   border-bottom: 1px solid rgba(232, 235, 228, 0.8);
 }
 
-[data-theme="sakura"] .theme-topbar {
+.theme-sakura .theme-topbar {
   background: rgba(255, 245, 247, 0.9);
   border-bottom: 1px solid rgba(255, 200, 216, 0.8);
 }
 
-[data-theme="autumn"] .theme-topbar {
+.theme-autumn .theme-topbar {
   background: rgba(255, 248, 231, 0.9);
   border-bottom: 1px solid rgba(232, 201, 155, 0.8);
 }
 
-[data-theme="snow"] .theme-topbar {
+.theme-snow .theme-topbar {
   background: rgba(240, 247, 255, 0.9);
   border-bottom: 1px solid rgba(208, 224, 240, 0.8);
 }
 
-[data-theme="starry"] .theme-topbar {
+.theme-starry .theme-topbar {
   background: rgba(15, 25, 55, 0.9);
   border-bottom: 1px solid rgba(58, 74, 112, 0.8);
 }
@@ -296,19 +302,19 @@ body {
   background: linear-gradient(to bottom, rgba(26, 58, 47, 0.05), rgba(250, 247, 240, 1));
 }
 
-[data-theme="sakura"] .theme-hero-section {
+.theme-sakura .theme-hero-section {
   background: linear-gradient(to bottom, rgba(216, 112, 147, 0.08), rgba(255, 245, 247, 1));
 }
 
-[data-theme="autumn"] .theme-hero-section {
+.theme-autumn .theme-hero-section {
   background: linear-gradient(to bottom, rgba(200, 117, 51, 0.08), rgba(255, 248, 231, 1));
 }
 
-[data-theme="snow"] .theme-hero-section {
+.theme-snow .theme-hero-section {
   background: linear-gradient(to bottom, rgba(59, 110, 168, 0.08), rgba(240, 247, 255, 1));
 }
 
-[data-theme="starry"] .theme-hero-section {
+.theme-starry .theme-hero-section {
   background: linear-gradient(to bottom, rgba(196, 181, 253, 0.1), rgba(15, 25, 55, 1));
 }
 
@@ -316,18 +322,18 @@ body {
   background-color: rgba(232, 235, 228, 0.6);
 }
 
-[data-theme="sakura"] .theme-hover-bg {
+.theme-sakura .theme-hover-bg {
   background-color: rgba(255, 200, 216, 0.5);
 }
 
-[data-theme="autumn"] .theme-hover-bg {
+.theme-autumn .theme-hover-bg {
   background-color: rgba(232, 201, 155, 0.5);
 }
 
-[data-theme="snow"] .theme-hover-bg {
+.theme-snow .theme-hover-bg {
   background-color: rgba(208, 224, 240, 0.5);
 }
 
-[data-theme="starry"] .theme-hover-bg {
+.theme-starry .theme-hover-bg {
   background-color: rgba(58, 74, 112, 0.6);
 }
