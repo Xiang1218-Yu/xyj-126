@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ZoomIn, ZoomOut, Maximize2, Users, Search, Info, Trash2 } from "lucide-react";
+import { ArrowLeft, ZoomIn, ZoomOut, Maximize2, Users, Search, Info, Trash2, Lock, AlertCircle, CheckCircle } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
 import { RELATION_LABELS, type FamilyRelation, type Memorial } from "@/types";
-import { formatDateShort } from "@/utils";
+import { formatDateShort, verifyPassword } from "@/utils";
 
 interface Node {
   id: string;
@@ -22,7 +22,7 @@ interface Edge {
 }
 
 export default function FamilyNetwork() {
-  const { memorials, familyRelations, loadMemorials, loadFamilyRelations, removeFamilyRelation, getRelationsForMemorial } = useMemorialStore();
+  const { memorials, familyRelations, loadMemorials, loadFamilyRelations, removeFamilyRelation, getRelationsForMemorial, getMemorial } = useMemorialStore();
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -36,10 +36,72 @@ export default function FamilyNetwork() {
   const [, forceUpdate] = useState(0);
   const isDraggingRef = useRef<string | null>(null);
 
+  const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [adminPasswordError, setAdminPasswordError] = useState("");
+  const [pendingRelationId, setPendingRelationId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
   useEffect(() => {
     loadMemorials();
     loadFamilyRelations();
   }, [loadMemorials, loadFamilyRelations]);
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
+
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+  };
+
+  const verifyAdminPasswordForRel = async (password: string, relationId: string): Promise<boolean> => {
+    const relation = familyRelations.find((r) => r.id === relationId);
+    if (!relation) return false;
+    const fromMemorial = getMemorial(relation.fromMemorialId);
+    const toMemorial = getMemorial(relation.toMemorialId);
+    if (!fromMemorial && !toMemorial) return false;
+
+    const checkMemorial = async (m: Memorial | undefined): Promise<boolean> => {
+      if (!m) return false;
+      if (!m.adminPassword && !m.password) return true;
+      if (m.adminPassword) {
+        return await verifyPassword(password, m.adminPassword);
+      }
+      if (m.isPrivate && m.password) {
+        return await verifyPassword(password, m.password);
+      }
+      return false;
+    };
+
+    return (await checkMemorial(fromMemorial)) || (await checkMemorial(toMemorial));
+  };
+
+  const handleAdminPasswordSubmit = async () => {
+    if (!pendingRelationId) return;
+    const isValid = await verifyAdminPasswordForRel(adminPasswordInput, pendingRelationId);
+    if (isValid) {
+      removeFamilyRelation(pendingRelationId);
+      setShowAdminPasswordModal(false);
+      setAdminPasswordInput("");
+      setAdminPasswordError("");
+      setPendingRelationId(null);
+      setShowDeleteConfirm(null);
+      showToast("success", "亲属关系已删除");
+    } else {
+      setAdminPasswordError("管理密码错误");
+    }
+  };
+
+  const handleAdminPasswordCancel = () => {
+    setShowAdminPasswordModal(false);
+    setAdminPasswordInput("");
+    setAdminPasswordError("");
+    setPendingRelationId(null);
+  };
 
   const initNodes = useCallback(() => {
     const width = containerRef.current?.clientWidth || 800;
@@ -267,9 +329,28 @@ export default function FamilyNetwork() {
     return { x: midX, y: midY };
   };
 
-  const handleDeleteRelation = (relationId: string) => {
-    removeFamilyRelation(relationId);
-    setShowDeleteConfirm(null);
+  const handleDeleteRelation = async (relationId: string) => {
+    const relation = familyRelations.find((r) => r.id === relationId);
+    if (!relation) {
+      setShowDeleteConfirm(null);
+      return;
+    }
+    const fromMemorial = getMemorial(relation.fromMemorialId);
+    const toMemorial = getMemorial(relation.toMemorialId);
+
+    const needsPassword = (m: Memorial | undefined): boolean => {
+      if (!m) return false;
+      return !!(m.adminPassword || m.password);
+    };
+
+    if (!needsPassword(fromMemorial) && !needsPassword(toMemorial)) {
+      removeFamilyRelation(relationId);
+      setShowDeleteConfirm(null);
+      showToast("success", "亲属关系已删除");
+    } else {
+      setPendingRelationId(relationId);
+      setShowAdminPasswordModal(true);
+    }
   };
 
   return (
@@ -619,6 +700,84 @@ export default function FamilyNetwork() {
               >
                 删除
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div
+            className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg border ${
+              toast.type === "success"
+                ? "bg-green-50 border-green-200 text-green-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
+            <span className="text-sm font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {showAdminPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-slide-up">
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-memorial-100 flex items-center justify-center">
+                <Lock className="w-7 h-7 text-memorial-600" />
+              </div>
+              <h3 className="font-serif text-xl text-memorial-950 mb-1">请输入管理密码</h3>
+              <p className="text-sm text-memorial-500">验证任一端纪念页的管理密码即可删除</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  value={adminPasswordInput}
+                  onChange={(e) => {
+                    setAdminPasswordInput(e.target.value);
+                    setAdminPasswordError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAdminPasswordSubmit();
+                  }}
+                  placeholder="请输入管理密码"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all ${
+                    adminPasswordError ? "border-red-400" : "border-memorial-200"
+                  }`}
+                  autoFocus
+                />
+                {adminPasswordError && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {adminPasswordError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleAdminPasswordCancel}
+                  className="flex-1 py-3 border border-memorial-300 text-memorial-700 rounded-xl hover:bg-memorial-50 transition-colors font-medium"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdminPasswordSubmit}
+                  disabled={!adminPasswordInput}
+                  className="flex-1 py-3 bg-memorial-950 text-cream-100 rounded-xl hover:bg-memorial-800 transition-colors font-medium disabled:opacity-50"
+                >
+                  确认删除
+                </button>
+              </div>
             </div>
           </div>
         </div>

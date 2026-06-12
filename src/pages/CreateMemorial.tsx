@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus } from "lucide-react";
+import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus, AlertCircle, CheckCircle } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
-import { compressImage, hashPassword, formatDateShort } from "@/utils";
+import { compressImage, hashPassword, formatDateShort, verifyPassword } from "@/utils";
 import type { Photo, RelationType, Gender } from "@/types";
 import { RELATION_LABELS } from "@/types";
 
@@ -47,6 +47,13 @@ export default function CreateMemorial() {
     note: "",
   });
 
+  const [isAdminVerified, setIsAdminVerified] = useState(false);
+  const [showAdminPasswordModal, setShowAdminPasswordModal] = useState(false);
+  const [adminPasswordInput, setAdminPasswordInput] = useState("");
+  const [adminPasswordError, setAdminPasswordError] = useState("");
+  const [pendingAction, setPendingAction] = useState<null | (() => void)>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
   useEffect(() => {
     loadMemorials();
     loadFamilyRelations();
@@ -71,9 +78,71 @@ export default function CreateMemorial() {
           reminderDays: memorial.reminderDays,
         });
         setPhotos(memorial.photos);
+
+        if (!memorial.adminPassword && !memorial.password) {
+          setIsAdminVerified(true);
+        }
       }
     }
   }, [id, getMemorial, isEditing]);
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [toast]);
+
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+  };
+
+  const verifyAdminPasswordLocal = async (password: string): Promise<boolean> => {
+    if (!isEditing || !id) return true;
+    const memorial = getMemorial(id);
+    if (!memorial) return false;
+    if (!memorial.adminPassword && !memorial.password) return true;
+    if (memorial.adminPassword) {
+      return await verifyPassword(password, memorial.adminPassword);
+    }
+    if (memorial.isPrivate && memorial.password) {
+      return await verifyPassword(password, memorial.password);
+    }
+    return false;
+  };
+
+  const requireAdminAction = (action: () => void) => {
+    if (!isEditing || isAdminVerified) {
+      action();
+      return;
+    }
+    setPendingAction(() => action);
+    setShowAdminPasswordModal(true);
+  };
+
+  const handleAdminPasswordSubmit = async () => {
+    const isValid = await verifyAdminPasswordLocal(adminPasswordInput);
+    if (isValid) {
+      setIsAdminVerified(true);
+      setShowAdminPasswordModal(false);
+      setAdminPasswordInput("");
+      setAdminPasswordError("");
+      if (pendingAction) {
+        const action = pendingAction;
+        setPendingAction(null);
+        action();
+      }
+    } else {
+      setAdminPasswordError("管理密码错误");
+    }
+  };
+
+  const handleAdminPasswordCancel = () => {
+    setShowAdminPasswordModal(false);
+    setAdminPasswordInput("");
+    setAdminPasswordError("");
+    setPendingAction(null);
+  };
 
   const currentRelations = useMemo(() => {
     if (!isEditing || !id) return [];
@@ -139,15 +208,37 @@ export default function CreateMemorial() {
   };
 
   const handleAddRelation = () => {
-    if (!id || !newRelation.toMemorialId) return;
-    const result = addFamilyRelation(id, newRelation.toMemorialId, newRelation.relation, newRelation.note);
-    if (result) {
-      setNewRelation({ toMemorialId: "", relation: "spouse", note: "" });
-    }
+    requireAdminAction(() => {
+      if (!id || !newRelation.toMemorialId) {
+        showToast("error", "请选择要关联的亲属纪念页");
+        return;
+      }
+      if (id === newRelation.toMemorialId) {
+        showToast("error", "不能与自己建立亲属关系");
+        return;
+      }
+      const alreadyExists = getRelationsForMemorial(id).some(
+        (r) => r.otherMemorial.id === newRelation.toMemorialId
+      );
+      if (alreadyExists) {
+        showToast("error", "已与该纪念页存在亲属关系");
+        return;
+      }
+      const result = addFamilyRelation(id, newRelation.toMemorialId, newRelation.relation, newRelation.note);
+      if (result) {
+        setNewRelation({ toMemorialId: "", relation: "spouse", note: "" });
+        showToast("success", "亲属关系添加成功");
+      } else {
+        showToast("error", "添加亲属关系失败，请重试");
+      }
+    });
   };
 
   const handleRemoveRelation = (relationId: string) => {
-    removeFamilyRelation(relationId);
+    requireAdminAction(() => {
+      removeFamilyRelation(relationId);
+      showToast("success", "亲属关系已删除");
+    });
   };
 
   const validate = (): boolean => {
@@ -178,6 +269,17 @@ export default function CreateMemorial() {
 
     if (!validate()) return;
 
+    if (isEditing && !isAdminVerified) {
+      requireAdminAction(async () => {
+        await doSubmit();
+      });
+      return;
+    }
+
+    await doSubmit();
+  };
+
+  const doSubmit = async () => {
     setIsSubmitting(true);
 
     try {
@@ -764,6 +866,84 @@ export default function CreateMemorial() {
           </form>
         </div>
       </div>
+
+      {toast && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div
+            className={`inline-flex items-center gap-2 px-5 py-3 rounded-xl shadow-lg border ${
+              toast.type === "success"
+                ? "bg-green-50 border-green-200 text-green-800"
+                : "bg-red-50 border-red-200 text-red-800"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
+            <span className="text-sm font-medium">{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {showAdminPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-slide-up">
+            <div className="text-center mb-6">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-memorial-100 flex items-center justify-center">
+                <Lock className="w-7 h-7 text-memorial-600" />
+              </div>
+              <h3 className="font-serif text-xl text-memorial-950 mb-1">请输入管理密码</h3>
+              <p className="text-sm text-memorial-500">验证身份后才能进行此操作</p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <input
+                  type="password"
+                  value={adminPasswordInput}
+                  onChange={(e) => {
+                    setAdminPasswordInput(e.target.value);
+                    setAdminPasswordError("");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAdminPasswordSubmit();
+                  }}
+                  placeholder="请输入管理密码"
+                  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all ${
+                    adminPasswordError ? "border-red-400" : "border-memorial-200"
+                  }`}
+                  autoFocus
+                />
+                {adminPasswordError && (
+                  <p className="text-red-500 text-sm mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {adminPasswordError}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleAdminPasswordCancel}
+                  className="flex-1 py-3 border border-memorial-300 text-memorial-700 rounded-xl hover:bg-memorial-50 transition-colors font-medium"
+                >
+                  取消
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAdminPasswordSubmit}
+                  disabled={!adminPasswordInput}
+                  className="flex-1 py-3 bg-memorial-950 text-cream-100 rounded-xl hover:bg-memorial-800 transition-colors font-medium disabled:opacity-50"
+                >
+                  确认
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
