@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme } from "@/types";
+import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme, BiographyDisplayMode } from "@/types";
 import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
 import { generateId, hashPassword } from "@/utils";
 
@@ -41,6 +41,7 @@ const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
   avatar: "",
   epitaph: "",
   biography: "",
+  biographyDisplayMode: "text",
   photos: [],
   messages: [],
   flowers: [],
@@ -381,8 +382,9 @@ function getSampleMemorials(): Promise<Memorial[]> {
         deathDate: "2023-11-20",
         avatar: "",
         epitaph: "一生勤劳善良，永远怀念您",
+        biographyDisplayMode: "timeline",
         biography:
-          "张敬山同志，1945年3月15日生于山东济南。\n\n青年时期投身教育事业，执教四十余载，桃李满天下。为人正直善良，待人宽厚，是晚辈们的榜样。\n\n退休后仍热心社区公益，深受邻里尊敬。2023年11月20日因病医治无效逝世，享年78岁。\n\n音容宛在，风范长存。",
+          "1945年3月15日，张敬山同志生于山东济南一个普通的工人家庭。\n\n青年时期，他以优异成绩考入师范学院，毕业后投身教育事业，执教四十余载，桃李满天下。\n\n中年时期，他担任学校校长职务，带领学校获得多项省市级荣誉，为人正直善良，待人宽厚，是晚辈们的榜样。\n\n退休后仍热心社区公益，积极参与关心下一代工作，深受邻里尊敬和爱戴。\n\n2023年11月20日因病医治无效逝世，享年78岁。音容宛在，风范长存。",
         photos: [],
         messages: [
           {
@@ -424,6 +426,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
         deathDate: "2024-05-12",
         avatar: "",
         epitaph: "慈母手中线，游子身上衣",
+        biographyDisplayMode: "text",
         biography:
           "李秀英，1952年8月8日出生于江苏苏州。\n\n一位普通而伟大的母亲，一生勤俭持家，含辛茹苦将三个子女抚养成人。她的慈爱与温暖是每个孩子心中最柔软的港湾。\n\n她热爱生活，喜欢养花、烹饪，家里总是收拾得井井有条，充满温馨。\n\n2024年5月12日安详离世，享年72岁。\n\n妈妈，我们永远爱您。",
         photos: [],
@@ -464,6 +467,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
         deathDate: "2022-12-25",
         avatar: "",
         epitaph: "私密纪念，深情珍藏",
+        biographyDisplayMode: "text",
         biography: "这是一个私密纪念页示例，输入密码 123456 即可查看。",
         photos: [],
         messages: [
@@ -500,6 +504,7 @@ async function migrateMemorials(memorials: Memorial[]): Promise<Memorial[]> {
     adminPassword: m.adminPassword ?? "",
     gender: m.gender ?? "unknown",
     theme: (m.theme as VisualTheme) ?? "default",
+    biographyDisplayMode: (m.biographyDisplayMode as BiographyDisplayMode) ?? "text",
   }));
 }
 

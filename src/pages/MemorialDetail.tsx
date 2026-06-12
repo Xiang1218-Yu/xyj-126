@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   calculateAge,
   daysUntilDeathAnniversary,
   verifyPassword,
+  parseBiographyToTimeline,
 } from "@/utils";
 import PhotoGallery from "@/components/PhotoGallery";
 import MessageWall from "@/components/MessageWall";
@@ -24,6 +25,7 @@ import CandleArea from "@/components/CandleArea";
 import QRCodeCard from "@/components/QRCodeCard";
 import PasswordProtected from "@/components/PasswordProtected";
 import ThemeSelector from "@/components/ThemeSelector";
+import BiographyTimeline from "@/components/BiographyTimeline";
 import { cn } from "@/lib/utils";
 
 export default function MemorialDetail() {
@@ -44,6 +46,11 @@ export default function MemorialDetail() {
   }, [loadMemorials, loadFamilyRelations]);
 
   const memorial = id ? getMemorial(id) : undefined;
+
+  const timelineNodes = useMemo(() => {
+    if (!memorial) return [];
+    return parseBiographyToTimeline(memorial.biography, memorial.birthDate, memorial.deathDate);
+  }, [memorial]);
 
   useEffect(() => {
     if (memorial && !memorial.isPrivate) {
@@ -83,6 +90,7 @@ export default function MemorialDetail() {
   const daysUntil = daysUntilDeathAnniversary(memorial.deathDate);
   const fullUrl = `${window.location.origin}${window.location.pathname}`;
   const theme = memorial.theme;
+  const displayMode = memorial.biographyDisplayMode ?? "text";
 
   const verifyAdminPassword = async (password: string): Promise<boolean> => {
     if (!memorial.adminPassword && !memorial.password) {
@@ -291,7 +299,9 @@ export default function MemorialDetail() {
           <div className="max-w-5xl mx-auto">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6">
               <div className="lg:col-span-8 space-y-5 md:space-y-6">
-                {memorial.biography && (
+                {memorial.biography && displayMode === "timeline" ? (
+                  <BiographyTimeline nodes={timelineNodes} theme={theme} />
+                ) : memorial.biography ? (
                   <div className="theme-card rounded-2xl p-5 md:p-6 shadow-sm">
                     <h3
                       className={cn(
@@ -312,7 +322,7 @@ export default function MemorialDetail() {
                       </p>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 <PhotoGallery photos={memorial.photos} theme={theme} />
                 <MessageWall

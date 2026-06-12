@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
-import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus, AlertCircle, CheckCircle, Palette } from "lucide-react";
+import { ArrowLeft, Upload, X, Image, Trash2, Save, Lock, Bell, Settings, Users, Plus, AlertCircle, CheckCircle, Palette, Clock, AlignLeft, Eye } from "lucide-react";
 import { useMemorialStore } from "@/store/memorialStore";
-import { compressImage, hashPassword, formatDateShort, verifyPassword } from "@/utils";
-import type { Photo, RelationType, Gender, VisualTheme } from "@/types";
+import { compressImage, hashPassword, formatDateShort, verifyPassword, parseBiographyToTimeline } from "@/utils";
+import type { Photo, RelationType, Gender, VisualTheme, BiographyDisplayMode } from "@/types";
 import { RELATION_LABELS } from "@/types";
 import { THEME_LIST } from "@/hooks/useTheme";
 import { cn } from "@/lib/utils";
+import BiographyTimeline from "@/components/BiographyTimeline";
 
 export default function CreateMemorial() {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function CreateMemorial() {
     avatar: "",
     epitaph: "",
     biography: "",
+    biographyDisplayMode: "text" as BiographyDisplayMode,
     isPrivate: false,
     password: "",
     adminPassword: "",
@@ -40,6 +42,8 @@ export default function CreateMemorial() {
     reminderDays: 7,
     theme: "default" as VisualTheme,
   });
+
+  const [showTimelinePreview, setShowTimelinePreview] = useState(false);
 
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +78,7 @@ export default function CreateMemorial() {
           avatar: memorial.avatar,
           epitaph: memorial.epitaph,
           biography: memorial.biography,
+          biographyDisplayMode: memorial.biographyDisplayMode ?? "text",
           isPrivate: memorial.isPrivate,
           password: "",
           adminPassword: "",
@@ -89,6 +94,10 @@ export default function CreateMemorial() {
       }
     }
   }, [id, getMemorial, isEditing]);
+
+  const timelinePreviewNodes = useMemo(() => {
+    return parseBiographyToTimeline(formData.biography, formData.birthDate, formData.deathDate);
+  }, [formData.biography, formData.birthDate, formData.deathDate]);
 
   useEffect(() => {
     if (toast) {
@@ -503,14 +512,80 @@ export default function CreateMemorial() {
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h2 className="font-serif text-xl text-memorial-950 mb-4">生平介绍</h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="font-serif text-xl text-memorial-950">生平介绍</h2>
+                <button
+                  type="button"
+                  onClick={() => setShowTimelinePreview(!showTimelinePreview)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg transition-colors",
+                    showTimelinePreview
+                      ? "bg-memorial-100 text-memorial-700"
+                      : "text-memorial-500 hover:text-memorial-700 hover:bg-memorial-50"
+                  )}
+                >
+                  <Eye className="w-4 h-4" />
+                  {showTimelinePreview ? "隐藏预览" : "预览时间轴"}
+                </button>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm text-memorial-600 mb-2">展示方式</label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange("biographyDisplayMode", "text" as BiographyDisplayMode)}
+                    className={cn(
+                      "flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2",
+                      formData.biographyDisplayMode === "text"
+                        ? "border-memorial-600 bg-memorial-50 text-memorial-700"
+                        : "border-memorial-200 text-memorial-500 hover:border-memorial-300"
+                    )}
+                  >
+                    <AlignLeft className="w-4 h-4" />
+                    <span>纯文字展示</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange("biographyDisplayMode", "timeline" as BiographyDisplayMode)}
+                    className={cn(
+                      "flex-1 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2",
+                      formData.biographyDisplayMode === "timeline"
+                        ? "border-memorial-600 bg-memorial-50 text-memorial-700"
+                        : "border-memorial-200 text-memorial-500 hover:border-memorial-300"
+                    )}
+                  >
+                    <Clock className="w-4 h-4" />
+                    <span>时间轴展示</span>
+                  </button>
+                </div>
+                <p className="text-xs text-memorial-400 mt-2">
+                  时间轴模式会自动识别文字中的日期（如"1945年3月15日"、"青年时期"、"退休后"等），按时间顺序排列展示。
+                </p>
+              </div>
+
               <textarea
                 value={formData.biography}
                 onChange={(e) => handleInputChange("biography", e.target.value)}
                 rows={8}
                 className="w-full px-4 py-3 border border-memorial-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-memorial-400/30 focus:border-memorial-400 transition-all resize-none"
-                placeholder="讲述逝者的生平故事..."
+                placeholder="讲述逝者的生平故事...&#10;提示：可在段落中包含日期，如：&#10;1945年3月15日，出生于...&#10;青年时期，投身教育事业...&#10;2023年11月20日，因病逝世..."
               />
+
+              {showTimelinePreview && (
+                <div className="mt-5 pt-5 border-t border-memorial-100">
+                  <h3 className="text-sm font-medium text-memorial-700 mb-3 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    时间轴预览
+                    {timelinePreviewNodes.length > 0 && (
+                      <span className="text-xs text-memorial-400 font-normal">
+                        （已识别 {timelinePreviewNodes.length} 个时间节点）
+                      </span>
+                    )}
+                  </h3>
+                  <BiographyTimeline nodes={timelinePreviewNodes} theme="default" />
+                </div>
+              )}
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-sm">

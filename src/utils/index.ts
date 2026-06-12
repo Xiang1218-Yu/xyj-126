@@ -1,3 +1,5 @@
+import type { TimelineNode } from "@/types";
+
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
 }
@@ -101,4 +103,152 @@ export function getFlowerEmoji(type: string): string {
     tulip: "🌷",
   };
   return flowers[type] || "🌸";
+}
+
+interface ParsedDate {
+  year: number;
+  month: number;
+  day: number;
+  dateText: string;
+  date: string;
+}
+
+const DATE_PATTERNS = [
+  /(\d{4})年(\d{1,2})月(\d{1,2})日/g,
+  /(\d{4})[年.／\-/](\d{1,2})[月.／\-/](\d{1,2})日?/g,
+  /(\d{4})年(\d{1,2})月/g,
+  /(\d{4})[年.／\-/](\d{1,2})月?/g,
+  /(\d{4})年/g,
+];
+
+const ERA_PATTERNS: Array<{ pattern: RegExp; yearOffset: (birthYear: number) => number; label: string }> = [
+  { pattern: /(出生|诞生|出世)/g, yearOffset: (y) => y, label: "出生" },
+  { pattern: /(幼年|童年|小时候)/g, yearOffset: (y) => y + 5, label: "幼年" },
+  { pattern: /(少年|青年时期|青年时代|年轻时|年轻的时候)/g, yearOffset: (y) => y + 18, label: "青年" },
+  { pattern: /(中年|壮年)/g, yearOffset: (y) => y + 40, label: "中年" },
+  { pattern: /(晚年|老年|退休后|退休以后)/g, yearOffset: (y) => y + 60, label: "晚年" },
+  { pattern: /(逝世|去世|离世|辞世|驾鹤|因病医治无效)/g, yearOffset: () => 9999, label: "逝世" },
+];
+
+function parseDateFromText(text: string, birthYear: number, deathYear: number): ParsedDate | null {
+  for (const pattern of DATE_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) {
+      const m = match[0];
+      const nums = m.match(/\d+/g);
+      if (nums) {
+        const year = parseInt(nums[0], 10);
+        const month = nums[1] ? parseInt(nums[1], 10) : 6;
+        const day = nums[2] ? parseInt(nums[2], 10) : 15;
+        const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        return { year, month, day, dateText: m, date: dateStr };
+      }
+    }
+  }
+
+  for (const era of ERA_PATTERNS) {
+    if (era.pattern.test(text)) {
+      const y = era.label === "逝世" ? deathYear : era.yearOffset(birthYear);
+      const month = 6;
+      const day = 15;
+      const dateStr = `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      return { year: y, month, day, dateText: era.label, date: dateStr };
+    }
+  }
+
+  return null;
+}
+
+function extractTitle(content: string, dateText: string): string {
+  const cleaned = content.replace(dateText, "").trim();
+  const firstSentence = cleaned.split(/[。！？\n.]/)[0].trim();
+  if (firstSentence.length > 0 && firstSentence.length <= 30) {
+    return firstSentence;
+  }
+  return cleaned.substring(0, 20) + (cleaned.length > 20 ? "..." : "");
+}
+
+export function parseBiographyToTimeline(
+  biography: string,
+  birthDate: string,
+  deathDate: string
+): TimelineNode[] {
+  if (!biography.trim()) return [];
+
+  const birthYear = birthDate ? new Date(birthDate).getFullYear() : 1950;
+  const deathYear = deathDate ? new Date(deathDate).getFullYear() : 2000;
+
+  const lines = biography
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  const nodes: TimelineNode[] = [];
+  let accumulatedText = "";
+  let currentDate: ParsedDate | null = null;
+  let nodeIndex = 0;
+
+  const finalizeNode = () => {
+    if (currentDate && accumulatedText.trim()) {
+      const title = extractTitle(accumulatedText, currentDate.dateText);
+      nodes.push({
+        id: `tl-${Date.now()}-${nodeIndex++}`,
+        date: currentDate.date,
+        dateText: currentDate.dateText,
+        title,
+        content: accumulatedText.trim(),
+        year: currentDate.year,
+        month: currentDate.month,
+        day: currentDate.day,
+      });
+    }
+    accumulatedText = "";
+  };
+
+  for (const line of lines) {
+    const parsedDate = parseDateFromText(line, birthYear, deathYear);
+
+    if (parsedDate) {
+      finalizeNode();
+      currentDate = parsedDate;
+      accumulatedText = line;
+    } else if (currentDate) {
+      accumulatedText += (accumulatedText ? "\n" : "") + line;
+    } else {
+      const fallbackYear = birthYear + Math.floor(nodes.length * 10);
+      const month = 6;
+      const day = 15;
+      currentDate = {
+        year: fallbackYear,
+        month,
+        day,
+        dateText: `${fallbackYear}年`,
+        date: `${fallbackYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+      };
+      accumulatedText = line;
+    }
+  }
+  finalizeNode();
+
+  if (nodes.length === 0 && biography.trim()) {
+    const fallbackYear = birthYear;
+    nodes.push({
+      id: `tl-${Date.now()}-0`,
+      date: `${fallbackYear}-06-15`,
+      dateText: "生平",
+      title: "生平简介",
+      content: biography.trim(),
+      year: fallbackYear,
+      month: 6,
+      day: 15,
+    });
+  }
+
+  nodes.sort((a, b) => {
+    if (a.year !== b.year) return a.year - b.year;
+    if (a.month !== b.month) return a.month - b.month;
+    return a.day - b.day;
+  });
+
+  return nodes.map((n, i) => ({ ...n, id: `tl-${Date.now()}-${i}` }));
 }

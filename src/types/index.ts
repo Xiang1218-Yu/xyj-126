@@ -36,6 +36,7 @@ export interface Memorial {
   avatar: string;
   epitaph: string;
   biography: string;
+  biographyDisplayMode: BiographyDisplayMode;
   photos: Photo[];
   messages: Message[];
   flowers: Flower[];
@@ -159,3 +160,16 @@ export interface ThemeConfig {
   cardBg: string;
   cardBorder: string;
 }
+
+export interface TimelineNode {
+  id: string;
+  date: string;
+  dateText: string;
+  title: string;
+  content: string;
+  year: number;
+  month: number;
+  day: number;
+}
+
+export type BiographyDisplayMode = "text" | "timeline";
