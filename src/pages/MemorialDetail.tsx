@@ -31,6 +31,7 @@ import QRCodeCard from "@/components/QRCodeCard";
 import PasswordProtected from "@/components/PasswordProtected";
 import ThemeSelector from "@/components/ThemeSelector";
 import BiographyTimeline from "@/components/BiographyTimeline";
+import WordCloud from "@/components/WordCloud";
 import { cn } from "@/lib/utils";
 
 export default function MemorialDetail() {
@@ -413,6 +414,14 @@ export default function MemorialDetail() {
                   onAddMessage={(author, content) => {
                     if (id) addMessage(id, { author, content });
                   }}
+                />
+                <WordCloud
+                  messages={memorial.messages}
+                  flowers={memorial.flowers}
+                  candles={memorial.candles}
+                  biography={memorial.biography}
+                  epitaph={memorial.epitaph}
+                  theme={theme}
                 />
               </div>
 
