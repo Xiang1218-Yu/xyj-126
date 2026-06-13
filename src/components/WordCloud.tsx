@@ -55,10 +55,19 @@ const TYPE_ICONS: Record<TextSource["type"], string> = {
   epitaph: "✨",
 };
 
+declare global {
+  namespace Intl {
+    class Segmenter {
+      constructor(locale: string, options?: { granularity?: "grapheme" | "word" | "sentence" });
+      segment(text: string): Iterable<{ segment: string; isWordLike: boolean }>;
+    }
+  }
+}
+
 function segmentChineseText(text: string): string[] {
   const words: string[] = [];
-  if (typeof Intl !== "undefined" && Intl.Segmenter) {
-    const segmenter = new Intl.Segmenter("zh-CN", { granularity: "word" });
+  if (typeof Intl !== "undefined" && typeof (Intl as typeof Intl & { Segmenter?: typeof Intl.Segmenter }).Segmenter !== "undefined") {
+    const segmenter = new (Intl as typeof Intl & { Segmenter: typeof Intl.Segmenter }).Segmenter("zh-CN", { granularity: "word" });
     const segments = segmenter.segment(text);
     for (const seg of segments) {
       if (seg.isWordLike) {

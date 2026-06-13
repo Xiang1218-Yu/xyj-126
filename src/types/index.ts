@@ -12,11 +12,34 @@ export interface Message {
   createdAt: string;
 }
 
+export interface FlowerItem {
+  type: string;
+  quantity: number;
+}
+
+export interface WrapperStyle {
+  id: string;
+  name: string;
+  color: string;
+  pattern: string;
+  description: string;
+}
+
 export interface Flower {
   id: string;
   type: string;
   message: string;
   createdAt: string;
+  items?: FlowerItem[];
+  wrapperStyle?: string;
+}
+
+export interface FlowerType {
+  id: string;
+  name: string;
+  emoji: string;
+  meaning: string;
+  color: string;
 }
 
 export interface DriftBottle {
@@ -62,13 +85,6 @@ export interface Memorial {
   inviteLinks: InviteLink[];
   createdAt: string;
   updatedAt: string;
-}
-
-export interface FlowerType {
-  id: string;
-  name: string;
-  emoji: string;
-  color: string;
 }
 
 export type RelationType =
@@ -337,6 +353,23 @@ export interface InviteLink {
   usedCount: number;
   isActive: boolean;
 }
+
+export const FLOWER_TYPES: FlowerType[] = [
+  { id: "chrysanthemum", name: "菊花", emoji: "🌼", meaning: "悼念、追思、高洁", color: "#FCD34D" },
+  { id: "rose", name: "玫瑰", emoji: "🌹", meaning: "爱与思念、永恒的情感", color: "#EF4444" },
+  { id: "lily", name: "百合", emoji: "🌸", meaning: "纯洁、庄严、百事合意", color: "#F472B6" },
+  { id: "carnation", name: "康乃馨", emoji: "💮", meaning: "母爱、感恩、温馨祝福", color: "#FB7185" },
+  { id: "sunflower", name: "向日葵", emoji: "🌻", meaning: "阳光、温暖、积极向上", color: "#FBBF24" },
+  { id: "tulip", name: "郁金香", emoji: "🌷", meaning: "祝福、永恒、美好回忆", color: "#F43F5E" },
+];
+
+export const WRAPPER_STYLES: WrapperStyle[] = [
+  { id: "white", name: "素雅白", color: "#F8FAFC", pattern: "bg-gradient-to-br from-slate-50 to-gray-100", description: "纯净素雅，寄托哀思" },
+  { id: "beige", name: "温馨米", color: "#FEF3C7", pattern: "bg-gradient-to-br from-amber-50 to-orange-50", description: "温暖怀念，温馨追忆" },
+  { id: "lightblue", name: "宁静蓝", color: "#DBEAFE", pattern: "bg-gradient-to-br from-blue-50 to-sky-50", description: "宁静祥和，永恒安息" },
+  { id: "lightpurple", name: "典雅紫", color: "#EDE9FE", pattern: "bg-gradient-to-br from-violet-50 to-purple-50", description: "庄严肃穆，典雅尊贵" },
+  { id: "lightgreen", name: "生机绿", color: "#D1FAE5", pattern: "bg-gradient-to-br from-emerald-50 to-green-50", description: "生命延续，希望永存" },
+];
 
 export const CHANTING_TEXTS = [
   "南无阿弥陀佛",

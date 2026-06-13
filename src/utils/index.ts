@@ -1,4 +1,5 @@
-import type { TimelineNode } from "@/types";
+import type { TimelineNode, FlowerType, WrapperStyle, FlowerItem } from "@/types";
+import { FLOWER_TYPES, WRAPPER_STYLES } from "@/types";
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
@@ -93,16 +94,49 @@ export function compressImage(file: File, maxWidth: number = 800, quality: numbe
   });
 }
 
+export function getFlowerType(type: string): FlowerType | undefined {
+  return FLOWER_TYPES.find((f) => f.id === type);
+}
+
 export function getFlowerEmoji(type: string): string {
-  const flowers: Record<string, string> = {
-    chrysanthemum: "🌼",
-    rose: "🌹",
-    lily: "🌸",
-    carnation: "💮",
-    sunflower: "🌻",
-    tulip: "🌷",
-  };
-  return flowers[type] || "🌸";
+  const flower = getFlowerType(type);
+  return flower?.emoji || "🌸";
+}
+
+export function getFlowerName(type: string): string {
+  const flower = getFlowerType(type);
+  return flower?.name || "花";
+}
+
+export function getFlowerMeaning(type: string): string {
+  const flower = getFlowerType(type);
+  return flower?.meaning || "";
+}
+
+export function getFlowerColor(type: string): string {
+  const flower = getFlowerType(type);
+  return flower?.color || "#9CA3AF";
+}
+
+export function getWrapperStyle(id: string): WrapperStyle | undefined {
+  return WRAPPER_STYLES.find((w) => w.id === id);
+}
+
+export function getWrapperName(id: string): string {
+  const wrapper = getWrapperStyle(id);
+  return wrapper?.name || "素雅白";
+}
+
+export function getFlowerItemsDisplay(items?: FlowerItem[]): string {
+  if (!items || items.length === 0) return "";
+  return items
+    .map((item) => `${getFlowerEmoji(item.type)}×${item.quantity}`)
+    .join(" ");
+}
+
+export function getTotalFlowerCount(items?: FlowerItem[]): number {
+  if (!items || items.length === 0) return 0;
+  return items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
 interface ParsedDate {

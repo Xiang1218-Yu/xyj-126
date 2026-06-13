@@ -434,8 +434,8 @@ export default function MemorialDetail() {
                   <FlowerArea
                     flowers={memorial.flowers}
                     theme={theme}
-                    onAddFlower={(type, message) => {
-                      if (id) addFlower(id, { type, message });
+                    onAddFlower={(data) => {
+                      if (id) addFlower(id, data);
                     }}
                   />
                   <CandleArea
