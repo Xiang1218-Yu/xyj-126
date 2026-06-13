@@ -177,6 +177,22 @@ export interface FamilyRelation {
   createdAt: string;
 }
 
+export type QRCodeShape = "classic" | "tombstone" | "heart" | "petal";
+
+export interface QRCodeStyle {
+  id: QRCodeShape;
+  name: string;
+  icon: string;
+  description: string;
+}
+
+export const QR_CODE_STYLES: QRCodeStyle[] = [
+  { id: "classic", name: "经典方形", icon: "🔲", description: "传统方形二维码，清晰易扫" },
+  { id: "tombstone", name: "墓碑形", icon: "🪦", description: "碑石造型，庄严肃穆" },
+  { id: "heart", name: "心形", icon: "❤️", description: "心形边框，寄托思念" },
+  { id: "petal", name: "花瓣形", icon: "🌸", description: "花瓣造型，柔美温情" },
+];
+
 export type VisualTheme = "default" | "sakura" | "autumn" | "snow" | "starry";
 
 export interface ThemeConfig {

@@ -7,7 +7,6 @@ import {
   Calendar,
   Clock,
   Settings,
-  QrCode,
   Users,
   Sparkles,
   UserPlus,
@@ -457,58 +456,15 @@ export default function MemorialDetail() {
                   />
                 )}
 
-                <div className="theme-card rounded-2xl p-5 shadow-sm">
-                  <h3
-                    className={cn(
-                      "font-serif text-lg mb-4 flex items-center gap-2",
-                      theme === "starry" ? "text-gray-100" : "text-memorial-950"
-                    )}
-                  >
-                    <QrCode className="w-5 h-5" />
-                    二维码铭牌
-                  </h3>
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={cn(
-                        "w-24 h-24 shrink-0 rounded-lg flex items-center justify-center overflow-hidden",
-                        theme === "starry"
-                          ? "bg-white/90 border border-slate-600"
-                          : "bg-white border border-memorial-100"
-                      )}
-                    >
-                      <QRCodeCard url={fullUrl} name={memorial.name} compact />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className={cn(
-                          "text-sm mb-3",
-                          theme === "starry" ? "text-gray-300" : "text-memorial-600"
-                        )}
-                      >
-                        扫码查看{memorial.name}的纪念页
-                      </p>
-                      <button
-                        onClick={() => {
-                          const canvas = document.querySelector("#qr-code-canvas canvas");
-                          if (canvas) {
-                            const link = document.createElement("a");
-                            link.download = `${memorial.name}-纪念页二维码.png`;
-                            link.href = (canvas as HTMLCanvasElement).toDataURL("image/png");
-                            link.click();
-                          }
-                        }}
-                        className={cn(
-                          "text-sm underline",
-                          theme === "starry"
-                            ? "text-gray-300 hover:text-white"
-                            : "text-memorial-700 hover:text-memorial-900"
-                        )}
-                      >
-                        下载二维码
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <QRCodeCard
+                  url={fullUrl}
+                  name={memorial.name}
+                  epitaph={memorial.epitaph}
+                  birthDate={formatDate(memorial.birthDate)}
+                  deathDate={formatDate(memorial.deathDate)}
+                  avatar={memorial.avatar}
+                  theme={theme}
+                />
 
                 {collaborators.length > 0 && (
                   <div className="theme-card rounded-2xl p-5 shadow-sm">
