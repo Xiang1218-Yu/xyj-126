@@ -1,105 +1,156 @@
 import { create } from "zustand";
-import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme, BiographyDisplayMode, Collaborator, Contribution, InviteLink, ContributionType, DriftBottle } from "@/types";
+import type {
+  Memorial,
+  Photo,
+  Message,
+  Flower,
+  Candle,
+  FamilyRelation,
+  RelationType,
+  VisualTheme,
+  Collaborator,
+  Contribution,
+  InviteLink,
+  ContributionType,
+  DriftBottle,
+} from "@/types";
 import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
-import { generateId, hashPassword } from "@/utils";
+import { generateId } from "@/utils";
+import {
+  addNestedItem,
+  addNestedItemToFront,
+  addNestedItemWithOrder,
+  removeNestedItem,
+  updateNestedItem,
+  mapParentById,
+  nowISO,
+  addNestedItemRaw,
+  addNestedItemRawToFront,
+} from "./nestedEntityUtils";
+import {
+  getSampleMemorials,
+  migrateMemorials,
+  getSampleFamilyRelations,
+  defaultMemorial,
+} from "./sampleData";
 
-interface MemorialState {
+const STORAGE_KEY = "memorial_memorials";
+const RELATIONS_STORAGE_KEY = "memorial_family_relations";
+const DRIFT_BOTTLE_STORAGE_KEY = "memorial_drift_bottles";
+const COLLABORATOR_STORAGE_KEY = "memorial_current_collaborator";
+
+function loadStorage<T>(key: string): T[] | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T[]) : null;
+  } catch (e) {
+    console.error(`load [${key}] failed:`, e);
+    return null;
+  }
+}
+
+function saveStorage<T>(key: string, data: T[]): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error(`save [${key}] failed:`, e);
+  }
+}
+
+export interface MemorialState {
   memorials: Memorial[];
   familyRelations: FamilyRelation[];
   currentCollaboratorId: string | null;
+  driftBottles: DriftBottle[];
   isLoaded: boolean;
   loadMemorials: () => void;
   saveMemorials: () => void;
   loadFamilyRelations: () => void;
   saveFamilyRelations: () => void;
+  loadDriftBottles: () => void;
+  saveDriftBottles: () => void;
   createMemorial: (data: Partial<Memorial>) => Memorial;
   updateMemorial: (id: string, data: Partial<Memorial>) => void;
   deleteMemorial: (id: string) => void;
   getMemorial: (id: string) => Memorial | undefined;
-  addPhoto: (memorialId: string, photo: Omit<Photo, "id" | "order">, collaboratorId?: string, collaboratorName?: string) => void;
+  addPhoto: (
+    memorialId: string,
+    photo: Omit<Photo, "id" | "order">,
+    collaboratorId?: string,
+    collaboratorName?: string
+  ) => void;
   removePhoto: (memorialId: string, photoId: string) => void;
   addMessage: (memorialId: string, message: Omit<Message, "id" | "createdAt">) => void;
   addFlower: (memorialId: string, flower: Omit<Flower, "id" | "createdAt">) => void;
   addCandle: (memorialId: string, candle: Omit<Candle, "id" | "createdAt">) => void;
   searchMemorials: (query: string) => Memorial[];
   resetToSampleData: () => Promise<void>;
-  addFamilyRelation: (fromId: string, toId: string, relation: RelationType, note?: string) => FamilyRelation | null;
+  addFamilyRelation: (
+    fromId: string,
+    toId: string,
+    relation: RelationType,
+    note?: string
+  ) => FamilyRelation | null;
   removeFamilyRelation: (relationId: string) => void;
-  getRelationsForMemorial: (memorialId: string) => Array<{ relation: FamilyRelation; otherMemorial: Memorial; label: string }>;
+  getRelationsForMemorial: (
+    memorialId: string
+  ) => Array<{ relation: FamilyRelation; otherMemorial: Memorial; label: string }>;
   getRelatedMemorials: (memorialId: string) => Memorial[];
   getAllFamilyRelations: () => FamilyRelation[];
   setMemorialTheme: (memorialId: string, theme: VisualTheme) => void;
-  createInviteLink: (memorialId: string, createdBy: string, maxUses?: number, validDays?: number) => InviteLink;
+  createInviteLink: (
+    memorialId: string,
+    createdBy: string,
+    maxUses?: number,
+    validDays?: number
+  ) => InviteLink;
   getInviteLinkByToken: (token: string) => InviteLink | null;
-  joinMemorialByInvite: (token: string, name: string, relation: string) => { success: boolean; memorial?: Memorial; collaborator?: Collaborator; message: string };
+  joinMemorialByInvite: (
+    token: string,
+    name: string,
+    relation: string
+  ) => { success: boolean; memorial?: Memorial; collaborator?: Collaborator; message: string };
   addCollaborator: (memorialId: string, name: string, relation: string) => Collaborator | null;
   removeCollaborator: (memorialId: string, collaboratorId: string) => void;
   getCollaborators: (memorialId: string) => Collaborator[];
-  addContribution: (memorialId: string, collaboratorId: string, collaboratorName: string, type: ContributionType, summary: string, detail?: string) => void;
+  addContribution: (
+    memorialId: string,
+    collaboratorId: string,
+    collaboratorName: string,
+    type: ContributionType,
+    summary: string,
+    detail?: string
+  ) => void;
   getContributions: (memorialId: string) => Contribution[];
   setCurrentCollaborator: (collaboratorId: string | null) => void;
   updateCollaboratorLastActive: (memorialId: string, collaboratorId: string) => void;
-  driftBottles: DriftBottle[];
-  loadDriftBottles: () => void;
-  saveDriftBottles: () => void;
   sendDriftBottle: (fromMemorialId: string, content: string) => DriftBottle | null;
   getDriftBottlesForMemorial: (memorialId: string) => DriftBottle[];
   markDriftBottleRead: (bottleId: string) => void;
   getUnreadDriftBottleCount: (memorialId: string) => number;
 }
 
-const STORAGE_KEY = "memorial_memorials";
-const RELATIONS_STORAGE_KEY = "memorial_family_relations";
-
-const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
-  name: "",
-  gender: "unknown",
-  birthDate: "",
-  deathDate: "",
-  avatar: "",
-  epitaph: "",
-  biography: "",
-  biographyDisplayMode: "text",
-  photos: [],
-  messages: [],
-  flowers: [],
-  candles: [],
-  isPrivate: false,
-  password: "",
-  adminPassword: "",
-  reminderEnabled: false,
-  reminderDays: 7,
-  theme: "default",
-  collaborators: [],
-  contributions: [],
-  inviteLinks: [],
-};
-
-const COLLABORATOR_STORAGE_KEY = "memorial_current_collaborator";
-const DRIFT_BOTTLE_STORAGE_KEY = "memorial_drift_bottles";
-
 export const useMemorialStore = create<MemorialState>((set, get) => ({
   memorials: [],
   familyRelations: [],
-  currentCollaboratorId: localStorage.getItem(COLLABORATOR_STORAGE_KEY),
   driftBottles: [],
+  currentCollaboratorId: localStorage.getItem(COLLABORATOR_STORAGE_KEY),
   isLoaded: false,
 
   loadMemorials: () => {
     (async () => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEY);
+        const stored = loadStorage<Memorial>(STORAGE_KEY);
         if (stored) {
-          const parsed = JSON.parse(stored);
-          const migrated = await migrateMemorials(parsed);
+          const migrated = await migrateMemorials(stored);
           set({ memorials: migrated, isLoaded: true });
-          if (JSON.stringify(migrated) !== JSON.stringify(parsed)) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          if (JSON.stringify(migrated) !== JSON.stringify(stored)) {
+            saveStorage(STORAGE_KEY, migrated);
           }
         } else {
-          const sampleData = await getSampleMemorials();
-          set({ memorials: sampleData, isLoaded: true });
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
+          const sample = await getSampleMemorials();
+          set({ memorials: sample, isLoaded: true });
+          saveStorage(STORAGE_KEY, sample);
         }
       } catch (error) {
         console.error("Failed to load memorials:", error);
@@ -108,15 +159,19 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
     })();
   },
 
+  saveMemorials: () => {
+    saveStorage(STORAGE_KEY, get().memorials);
+  },
+
   loadFamilyRelations: () => {
     try {
-      const stored = localStorage.getItem(RELATIONS_STORAGE_KEY);
+      const stored = loadStorage<FamilyRelation>(RELATIONS_STORAGE_KEY);
       if (stored) {
-        set({ familyRelations: JSON.parse(stored) });
+        set({ familyRelations: stored });
       } else {
-        const sampleRelations = getSampleFamilyRelations();
-        set({ familyRelations: sampleRelations });
-        localStorage.setItem(RELATIONS_STORAGE_KEY, JSON.stringify(sampleRelations));
+        const sample = getSampleFamilyRelations();
+        set({ familyRelations: sample });
+        saveStorage(RELATIONS_STORAGE_KEY, sample);
       }
     } catch (error) {
       console.error("Failed to load family relations:", error);
@@ -124,45 +179,34 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
   },
 
   saveFamilyRelations: () => {
+    saveStorage(RELATIONS_STORAGE_KEY, get().familyRelations);
+  },
+
+  loadDriftBottles: () => {
     try {
-      const { familyRelations } = get();
-      localStorage.setItem(RELATIONS_STORAGE_KEY, JSON.stringify(familyRelations));
+      const stored = loadStorage<DriftBottle>(DRIFT_BOTTLE_STORAGE_KEY);
+      if (stored) {
+        set({ driftBottles: stored });
+      }
     } catch (error) {
-      console.error("Failed to save family relations:", error);
+      console.error("Failed to load drift bottles:", error);
     }
   },
 
-  resetToSampleData: async () => {
-    const sampleData = await getSampleMemorials();
-    const sampleRelations = getSampleFamilyRelations();
-    set({ memorials: sampleData, familyRelations: sampleRelations, isLoaded: true });
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleData));
-    localStorage.setItem(RELATIONS_STORAGE_KEY, JSON.stringify(sampleRelations));
-  },
-
-  saveMemorials: () => {
-    try {
-      const { memorials } = get();
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(memorials));
-    } catch (error) {
-      console.error("Failed to save memorials:", error);
-    }
+  saveDriftBottles: () => {
+    saveStorage(DRIFT_BOTTLE_STORAGE_KEY, get().driftBottles);
   },
 
   createMemorial: (data) => {
-    const now = new Date().toISOString();
+    const now = nowISO();
     const newMemorial: Memorial = {
       ...defaultMemorial,
       ...data,
-      id: generateId(),
+      id: data.id || generateId(),
       createdAt: now,
       updatedAt: now,
     };
-
-    set((state) => ({
-      memorials: [newMemorial, ...state.memorials],
-    }));
-
+    set((state) => ({ memorials: [newMemorial, ...state.memorials] }));
     get().saveMemorials();
     return newMemorial;
   },
@@ -170,7 +214,7 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
   updateMemorial: (id, data) => {
     set((state) => ({
       memorials: state.memorials.map((m) =>
-        m.id === id ? { ...m, ...data, updatedAt: new Date().toISOString() } : m
+        m.id === id ? { ...m, ...data, updatedAt: nowISO() } : m
       ),
     }));
     get().saveMemorials();
@@ -187,25 +231,13 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
     get().saveFamilyRelations();
   },
 
-  getMemorial: (id) => {
-    return get().memorials.find((m) => m.id === id);
-  },
+  getMemorial: (id) => get().memorials.find((m) => m.id === id),
 
   addPhoto: (memorialId, photo, collaboratorId, collaboratorName) => {
     set((state) => ({
-      memorials: state.memorials.map((m) => {
-        if (m.id !== memorialId) return m;
-        const newPhoto: Photo = {
-          ...photo,
-          id: generateId(),
-          order: m.photos.length,
-        };
-        return {
-          ...m,
-          photos: [...m.photos, newPhoto],
-          updatedAt: new Date().toISOString(),
-        };
-      }),
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        addNestedItemWithOrder<Memorial, Photo>(m, "photos", photo)
+      ),
     }));
     get().saveMemorials();
     if (collaboratorId && collaboratorName) {
@@ -215,71 +247,36 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
 
   removePhoto: (memorialId, photoId) => {
     set((state) => ({
-      memorials: state.memorials.map((m) => {
-        if (m.id !== memorialId) return m;
-        return {
-          ...m,
-          photos: m.photos.filter((p) => p.id !== photoId),
-          updatedAt: new Date().toISOString(),
-        };
-      }),
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        removeNestedItem<Memorial>(m, "photos", photoId)
+      ),
     }));
     get().saveMemorials();
   },
 
   addMessage: (memorialId, message) => {
     set((state) => ({
-      memorials: state.memorials.map((m) => {
-        if (m.id !== memorialId) return m;
-        const newMessage: Message = {
-          ...message,
-          id: generateId(),
-          createdAt: new Date().toISOString(),
-        };
-        return {
-          ...m,
-          messages: [newMessage, ...m.messages],
-          updatedAt: new Date().toISOString(),
-        };
-      }),
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        addNestedItemToFront<Memorial, Message>(m, "messages", message)
+      ),
     }));
     get().saveMemorials();
   },
 
   addFlower: (memorialId, flower) => {
     set((state) => ({
-      memorials: state.memorials.map((m) => {
-        if (m.id !== memorialId) return m;
-        const newFlower: Flower = {
-          ...flower,
-          id: generateId(),
-          createdAt: new Date().toISOString(),
-        };
-        return {
-          ...m,
-          flowers: [...m.flowers, newFlower],
-          updatedAt: new Date().toISOString(),
-        };
-      }),
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        addNestedItem<Memorial, Flower>(m, "flowers", flower)
+      ),
     }));
     get().saveMemorials();
   },
 
   addCandle: (memorialId, candle) => {
     set((state) => ({
-      memorials: state.memorials.map((m) => {
-        if (m.id !== memorialId) return m;
-        const newCandle: Candle = {
-          ...candle,
-          id: generateId(),
-          createdAt: new Date().toISOString(),
-        };
-        return {
-          ...m,
-          candles: [...m.candles, newCandle],
-          updatedAt: new Date().toISOString(),
-        };
-      }),
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        addNestedItem<Memorial, Candle>(m, "candles", candle)
+      ),
     }));
     get().saveMemorials();
   },
@@ -287,12 +284,19 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
   searchMemorials: (query) => {
     const { memorials } = get();
     if (!query.trim()) return memorials;
-    const lowerQuery = query.toLowerCase();
+    const lower = query.toLowerCase();
     return memorials.filter(
-      (m) =>
-        m.name.toLowerCase().includes(lowerQuery) ||
-        m.epitaph.toLowerCase().includes(lowerQuery)
+      (m) => m.name.toLowerCase().includes(lower) || m.epitaph.toLowerCase().includes(lower)
     );
+  },
+
+  resetToSampleData: async () => {
+    const sampleMemorials = await getSampleMemorials();
+    const sampleRelations = getSampleFamilyRelations();
+    set({ memorials: sampleMemorials, familyRelations: sampleRelations, isLoaded: true, driftBottles: [] });
+    saveStorage(STORAGE_KEY, sampleMemorials);
+    saveStorage(RELATIONS_STORAGE_KEY, sampleRelations);
+    saveStorage(DRIFT_BOTTLE_STORAGE_KEY, []);
   },
 
   addFamilyRelation: (fromId, toId, relation, note) => {
@@ -304,10 +308,9 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
         (r.fromMemorialId === toId && r.toMemorialId === fromId)
     );
     if (exists) return null;
-
-    const fromMemorial = memorials.find((m) => m.id === fromId);
-    const toMemorial = memorials.find((m) => m.id === toId);
-    if (!fromMemorial || !toMemorial) return null;
+    const fromMem = memorials.find((m) => m.id === fromId);
+    const toMem = memorials.find((m) => m.id === toId);
+    if (!fromMem || !toMem) return null;
 
     const newRelation: FamilyRelation = {
       id: generateId(),
@@ -315,19 +318,16 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
       toMemorialId: toId,
       relation,
       note,
-      createdAt: new Date().toISOString(),
+      createdAt: nowISO(),
     };
-
-    set((state) => ({
-      familyRelations: [...state.familyRelations, newRelation],
-    }));
+    set((state) => ({ familyRelations: [...state.familyRelations, newRelation] }));
     get().saveFamilyRelations();
     return newRelation;
   },
 
   removeFamilyRelation: (relationId) => {
     set((state) => ({
-      familyRelations: state.familyRelations.filter((r) => r.id !== relationId),
+      familyRelations: state.familyRelations.filter((r) => r.id !== relationId)
     }));
     get().saveFamilyRelations();
   },
@@ -357,38 +357,28 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
 
       if (otherId && label) {
         const otherMemorial = memorials.find((m) => m.id === otherId);
-        if (otherMemorial) {
-          result.push({ relation: r, otherMemorial, label });
-        }
+        if (otherMemorial) result.push({ relation: r, otherMemorial, label });
       }
     }
-
     return result;
   },
 
   getRelatedMemorials: (memorialId) => {
     const { familyRelations, memorials } = get();
     const relatedIds = new Set<string>();
-
     for (const r of familyRelations) {
-      if (r.fromMemorialId === memorialId) {
-        relatedIds.add(r.toMemorialId);
-      } else if (r.toMemorialId === memorialId) {
-        relatedIds.add(r.fromMemorialId);
-      }
+      if (r.fromMemorialId === memorialId) relatedIds.add(r.toMemorialId);
+      else if (r.toMemorialId === memorialId) relatedIds.add(r.fromMemorialId);
     }
-
     return memorials.filter((m) => relatedIds.has(m.id));
   },
 
-  getAllFamilyRelations: () => {
-    return get().familyRelations;
-  },
+  getAllFamilyRelations: () => get().familyRelations,
 
   setMemorialTheme: (memorialId, theme) => {
     set((state) => ({
       memorials: state.memorials.map((m) =>
-        m.id === memorialId ? { ...m, theme, updatedAt: new Date().toISOString() } : m
+        m.id === memorialId ? { ...m, theme, updatedAt: nowISO() } : m
       ),
     }));
     get().saveMemorials();
@@ -412,11 +402,11 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
     };
 
     set((state) => ({
-      memorials: state.memorials.map((m) =>
-        m.id === memorialId
-          ? { ...m, inviteLinks: [...(m.inviteLinks || []), newInvite], updatedAt: now.toISOString() }
-          : m
-      ),
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+      addNestedItem<Memorial, InviteLink>(m, "inviteLinks", {
+        ...newInvite,
+      } as unknown as Omit<InviteLink, "id" | "createdAt">)
+    ),
     }));
     get().saveMemorials();
     return newInvite;
@@ -434,53 +424,31 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
   joinMemorialByInvite: (token, name, relation) => {
     const { memorials, getInviteLinkByToken } = get();
     const invite = getInviteLinkByToken(token);
-
-    if (!invite) {
-      return { success: false, message: "邀请链接无效" };
-    }
-
-    if (!invite.isActive) {
-      return { success: false, message: "邀请链接已失效" };
-    }
-
-    if (new Date(invite.expiresAt) < new Date()) {
-      return { success: false, message: "邀请链接已过期" };
-    }
-
-    if (invite.usedCount >= invite.maxUses) {
-      return { success: false, message: "邀请链接已达使用上限" };
-    }
+    if (!invite) return { success: false, message: "邀请链接无效" };
+    if (!invite.isActive) return { success: false, message: "邀请链接已失效" };
+    if (new Date(invite.expiresAt) < new Date()) return { success: false, message: "邀请链接已过期" };
+    if (invite.usedCount >= invite.maxUses) return { success: false, message: "邀请链接已达使用上限" };
 
     const memorial = memorials.find((m) => m.id === invite.memorialId);
-    if (!memorial) {
-      return { success: false, message: "纪念页不存在" };
-    }
+    if (!memorial) return { success: false, message: "纪念页不存在" };
 
     const collaborator = get().addCollaborator(invite.memorialId, name, relation);
-    if (!collaborator) {
-      return { success: false, message: "加入失败，请重试" };
-    }
+    if (!collaborator) return { success: false, message: "加入失败，请重试" };
 
     set((state) => ({
-      memorials: state.memorials.map((m) =>
-        m.id === invite.memorialId
-          ? {
-              ...m,
-              inviteLinks: (m.inviteLinks || []).map((i) =>
-                i.id === invite.id ? { ...i, usedCount: i.usedCount + 1 } : i
-              ),
-            }
-          : m
+      memorials: mapParentById(state.memorials, invite.memorialId, (m) =>
+        updateNestedItem<Memorial, InviteLink>(m, "inviteLinks", invite.id, {
+          usedCount: invite.usedCount + 1,
+        } as Partial<InviteLink>)
       ),
     }));
     get().saveMemorials();
     get().setCurrentCollaborator(collaborator.id);
-
     return { success: true, memorial, collaborator, message: "成功加入纪念页协作" };
   },
 
   addCollaborator: (memorialId, name, relation) => {
-    const now = new Date().toISOString();
+    const now = nowISO();
     const newCollaborator: Collaborator = {
       id: generateId(),
       name,
@@ -488,16 +456,9 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
       joinedAt: now,
       lastActiveAt: now,
     };
-
     set((state) => ({
-      memorials: state.memorials.map((m) =>
-        m.id === memorialId
-          ? {
-              ...m,
-              collaborators: [...(m.collaborators || []), newCollaborator],
-              updatedAt: now,
-            }
-          : m
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        addNestedItemRaw<Memorial, Collaborator>(m, "collaborators", newCollaborator)
       ),
     }));
     get().saveMemorials();
@@ -506,26 +467,17 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
 
   removeCollaborator: (memorialId, collaboratorId) => {
     set((state) => ({
-      memorials: state.memorials.map((m) =>
-        m.id === memorialId
-          ? {
-              ...m,
-              collaborators: (m.collaborators || []).filter((c) => c.id !== collaboratorId),
-              updatedAt: new Date().toISOString(),
-            }
-          : m
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        removeNestedItem<Memorial>(m, "collaborators", collaboratorId)
       ),
     }));
     get().saveMemorials();
   },
 
-  getCollaborators: (memorialId) => {
-    const memorial = get().getMemorial(memorialId);
-    return memorial?.collaborators || [];
-  },
+  getCollaborators: (memorialId) => get().getMemorial(memorialId)?.collaborators || [],
 
   addContribution: (memorialId, collaboratorId, collaboratorName, type, summary, detail) => {
-    const now = new Date().toISOString();
+    const now = nowISO();
     const newContribution: Contribution = {
       id: generateId(),
       memorialId,
@@ -536,105 +488,57 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
       detail,
       createdAt: now,
     };
-
     set((state) => ({
-      memorials: state.memorials.map((m) =>
-        m.id === memorialId
-          ? {
-              ...m,
-              contributions: [newContribution, ...(m.contributions || [])],
-              updatedAt: now,
-            }
-          : m
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        addNestedItemRawToFront<Memorial, Contribution>(m, "contributions", newContribution)
       ),
     }));
     get().saveMemorials();
     get().updateCollaboratorLastActive(memorialId, collaboratorId);
   },
 
-  getContributions: (memorialId) => {
-    const memorial = get().getMemorial(memorialId);
-    return memorial?.contributions || [];
-  },
+  getContributions: (memorialId) => get().getMemorial(memorialId)?.contributions || [],
 
   setCurrentCollaborator: (collaboratorId) => {
-    if (collaboratorId) {
-      localStorage.setItem(COLLABORATOR_STORAGE_KEY, collaboratorId);
-    } else {
-      localStorage.removeItem(COLLABORATOR_STORAGE_KEY);
-    }
+    if (collaboratorId) localStorage.setItem(COLLABORATOR_STORAGE_KEY, collaboratorId);
+    else localStorage.removeItem(COLLABORATOR_STORAGE_KEY);
     set({ currentCollaboratorId: collaboratorId });
   },
 
   updateCollaboratorLastActive: (memorialId, collaboratorId) => {
-    const now = new Date().toISOString();
+    const now = nowISO();
     set((state) => ({
-      memorials: state.memorials.map((m) =>
-        m.id === memorialId
-          ? {
-              ...m,
-              collaborators: (m.collaborators || []).map((c) =>
-                c.id === collaboratorId ? { ...c, lastActiveAt: now } : c
-              ),
-            }
-          : m
+      memorials: mapParentById(state.memorials, memorialId, (m) =>
+        updateNestedItem<Memorial, Collaborator>(m, "collaborators", collaboratorId, {
+          lastActiveAt: now,
+        } as Partial<Collaborator>)
       ),
     }));
-  },
-
-  loadDriftBottles: () => {
-    try {
-      const stored = localStorage.getItem(DRIFT_BOTTLE_STORAGE_KEY);
-      if (stored) {
-        set({ driftBottles: JSON.parse(stored) });
-      }
-    } catch (error) {
-      console.error("Failed to load drift bottles:", error);
-    }
-  },
-
-  saveDriftBottles: () => {
-    try {
-      const { driftBottles } = get();
-      localStorage.setItem(DRIFT_BOTTLE_STORAGE_KEY, JSON.stringify(driftBottles));
-    } catch (error) {
-      console.error("Failed to save drift bottles:", error);
-    }
   },
 
   sendDriftBottle: (fromMemorialId, content) => {
     const { memorials } = get();
     const fromMemorial = memorials.find((m) => m.id === fromMemorialId);
     if (!fromMemorial) return null;
-
-    const publicMemorials = memorials.filter(
-      (m) => !m.isPrivate && m.id !== fromMemorialId
-    );
+    const publicMemorials = memorials.filter((m) => !m.isPrivate && m.id !== fromMemorialId);
     if (publicMemorials.length === 0) return null;
-
-    const targetMemorial =
-      publicMemorials[Math.floor(Math.random() * publicMemorials.length)];
-
+    const targetMemorial = publicMemorials[Math.floor(Math.random() * publicMemorials.length)];
     const bottle: DriftBottle = {
       id: generateId(),
       content,
       fromMemorialId,
       fromMemorialName: fromMemorial.name,
       toMemorialId: targetMemorial.id,
-      createdAt: new Date().toISOString(),
+      createdAt: nowISO(),
       isRead: false,
     };
-
-    set((state) => ({
-      driftBottles: [...state.driftBottles, bottle],
-    }));
+    set((state) => ({ driftBottles: [...state.driftBottles, bottle] }));
     get().saveDriftBottles();
     return bottle;
   },
 
-  getDriftBottlesForMemorial: (memorialId) => {
-    return get().driftBottles.filter((b) => b.toMemorialId === memorialId);
-  },
+  getDriftBottlesForMemorial: (memorialId) =>
+    get().driftBottles.filter((b) => b.toMemorialId === memorialId),
 
   markDriftBottleRead: (bottleId) => {
     set((state) => ({
@@ -645,225 +549,6 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
     get().saveDriftBottles();
   },
 
-  getUnreadDriftBottleCount: (memorialId) => {
-    return get().driftBottles.filter(
-      (b) => b.toMemorialId === memorialId && !b.isRead
-    ).length;
-  },
+  getUnreadDriftBottleCount: (memorialId) =>
+    get().driftBottles.filter((b) => b.toMemorialId === memorialId && !b.isRead).length,
 }));
-
-function getSampleMemorials(): Promise<Memorial[]> {
-  return new Promise(async (resolve) => {
-    const now = new Date();
-    const sample1Date = new Date(now.getTime() - 86400000 * 30);
-    const sample2Date = new Date(now.getTime() - 86400000 * 60);
-    const privatePassword = await hashPassword("123456");
-
-    resolve([
-      {
-        id: "sample-001",
-        name: "张敬山",
-        gender: "male",
-        birthDate: "1945-03-15",
-        deathDate: "2023-11-20",
-        avatar: "",
-        epitaph: "一生勤劳善良，永远怀念您",
-        biographyDisplayMode: "timeline",
-        biography:
-          "1945年3月15日，张敬山同志生于山东济南一个普通的工人家庭。\n\n青年时期，他以优异成绩考入师范学院，毕业后投身教育事业，执教四十余载，桃李满天下。\n\n中年时期，他担任学校校长职务，带领学校获得多项省市级荣誉，为人正直善良，待人宽厚，是晚辈们的榜样。\n\n退休后仍热心社区公益，积极参与关心下一代工作，深受邻里尊敬和爱戴。\n\n2023年11月20日因病医治无效逝世，享年78岁。音容宛在，风范长存。",
-        photos: [],
-        messages: [
-          {
-            id: "msg-1",
-            content: "爷爷，孙女想您了。您在那边还好吗？",
-            author: "小明",
-            createdAt: sample1Date.toISOString(),
-          },
-          {
-            id: "msg-2",
-            content: "张老师，您的学生来看您了。感谢您当年的教诲。",
-            author: "您的学生",
-            createdAt: new Date(sample1Date.getTime() + 86400000).toISOString(),
-          },
-        ],
-        flowers: [
-          { id: "f1", type: "chrysanthemum", message: "爷爷一路走好", createdAt: sample1Date.toISOString() },
-          { id: "f2", type: "lily", message: "永远怀念您", createdAt: sample1Date.toISOString() },
-          { id: "f3", type: "rose", message: "爱您的孙女敬上", createdAt: sample1Date.toISOString() },
-        ],
-        candles: [
-          { id: "c1", name: "追思灯", message: "愿您在天堂安息", isEternal: true, createdAt: sample1Date.toISOString() },
-          { id: "c2", name: "", message: "照亮回家的路", isEternal: false, createdAt: sample1Date.toISOString() },
-        ],
-        isPrivate: false,
-        password: "",
-        adminPassword: "",
-        reminderEnabled: true,
-        reminderDays: 7,
-        theme: "default",
-        collaborators: [
-          {
-            id: "col-001",
-            name: "张小明",
-            relation: "孙子",
-            joinedAt: sample1Date.toISOString(),
-            lastActiveAt: sample1Date.toISOString(),
-          },
-          {
-            id: "col-002",
-            name: "张小红",
-            relation: "孙女",
-            joinedAt: new Date(sample1Date.getTime() + 86400000).toISOString(),
-            lastActiveAt: new Date(sample1Date.getTime() + 86400000 * 2).toISOString(),
-          },
-        ],
-        contributions: [
-          {
-            id: "ctr-001",
-            memorialId: "sample-001",
-            collaboratorId: "col-001",
-            collaboratorName: "张小明",
-            type: "biography",
-            summary: "补充了爷爷的生平事迹",
-            detail: "添加了爷爷退休后参与社区公益工作的详细描述",
-            createdAt: sample1Date.toISOString(),
-          },
-          {
-            id: "ctr-002",
-            memorialId: "sample-001",
-            collaboratorId: "col-002",
-            collaboratorName: "张小红",
-            type: "message",
-            summary: "发表了追思留言",
-            createdAt: new Date(sample1Date.getTime() + 86400000).toISOString(),
-          },
-        ],
-        inviteLinks: [],
-        createdAt: sample1Date.toISOString(),
-        updatedAt: sample1Date.toISOString(),
-      },
-      {
-        id: "sample-002",
-        name: "李秀英",
-        gender: "female",
-        birthDate: "1952-08-08",
-        deathDate: "2024-05-12",
-        avatar: "",
-        epitaph: "慈母手中线，游子身上衣",
-        biographyDisplayMode: "text",
-        biography:
-          "李秀英，1952年8月8日出生于江苏苏州。\n\n一位普通而伟大的母亲，一生勤俭持家，含辛茹苦将三个子女抚养成人。她的慈爱与温暖是每个孩子心中最柔软的港湾。\n\n她热爱生活，喜欢养花、烹饪，家里总是收拾得井井有条，充满温馨。\n\n2024年5月12日安详离世，享年72岁。\n\n妈妈，我们永远爱您。",
-        photos: [],
-        messages: [
-          {
-            id: "msg-3",
-            content: "妈妈，今天是您的生日，我们都很想您。",
-            author: "大女儿",
-            createdAt: sample2Date.toISOString(),
-          },
-        ],
-        flowers: [
-          { id: "f4", type: "carnation", message: "妈妈，我们永远爱您", createdAt: sample2Date.toISOString() },
-          { id: "f5", type: "lily", message: "愿您在天堂安好", createdAt: sample2Date.toISOString() },
-          { id: "f6", type: "chrysanthemum", message: "您的孩子敬上", createdAt: sample2Date.toISOString() },
-          { id: "f7", type: "sunflower", message: "像阳光一样温暖的您", createdAt: sample2Date.toISOString() },
-          { id: "f8", type: "tulip", message: "永远怀念", createdAt: sample2Date.toISOString() },
-        ],
-        candles: [
-          { id: "c3", name: "慈母心灯", message: "妈妈，想您了", isEternal: true, createdAt: sample2Date.toISOString() },
-          { id: "c4", name: "", message: "点亮心灯照亮归途", isEternal: false, createdAt: sample2Date.toISOString() },
-          { id: "c5", name: "感恩灯", message: "愿您安息", isEternal: false, createdAt: sample2Date.toISOString() },
-        ],
-        isPrivate: false,
-        password: "",
-        adminPassword: "",
-        reminderEnabled: true,
-        reminderDays: 3,
-        theme: "sakura",
-        collaborators: [],
-        contributions: [],
-        inviteLinks: [],
-        createdAt: sample2Date.toISOString(),
-        updatedAt: sample2Date.toISOString(),
-      },
-      {
-        id: "sample-003",
-        name: "王老先生",
-        gender: "male",
-        birthDate: "1938-12-25",
-        deathDate: "2022-12-25",
-        avatar: "",
-        epitaph: "私密纪念，深情珍藏",
-        biographyDisplayMode: "text",
-        biography: "这是一个私密纪念页示例，输入密码 123456 即可查看。",
-        photos: [],
-        messages: [
-          {
-            id: "msg-4",
-            content: "爸爸，我们永远怀念您。",
-            author: "家人",
-            createdAt: new Date(sample2Date.getTime() - 86400000 * 10).toISOString(),
-          },
-        ],
-        flowers: [
-          { id: "f9", type: "chrysanthemum", message: "", createdAt: sample2Date.toISOString() },
-          { id: "f10", type: "lily", message: "", createdAt: sample2Date.toISOString() },
-        ],
-        candles: [
-          { id: "c6", name: "", message: "", isEternal: false, createdAt: sample2Date.toISOString() },
-        ],
-        isPrivate: true,
-        password: privatePassword,
-        adminPassword: privatePassword,
-        reminderEnabled: false,
-        reminderDays: 7,
-        theme: "starry",
-        collaborators: [],
-        contributions: [],
-        inviteLinks: [],
-        createdAt: new Date(sample2Date.getTime() - 86400000 * 30).toISOString(),
-        updatedAt: new Date(sample2Date.getTime() - 86400000 * 30).toISOString(),
-      },
-    ]);
-  });
-}
-
-async function migrateMemorials(memorials: Memorial[]): Promise<Memorial[]> {
-  return memorials.map((m) => ({
-    ...m,
-    adminPassword: m.adminPassword ?? "",
-    gender: m.gender ?? "unknown",
-    theme: (m.theme as VisualTheme) ?? "default",
-    biographyDisplayMode: (m.biographyDisplayMode as BiographyDisplayMode) ?? "text",
-    collaborators: m.collaborators ?? [],
-    contributions: m.contributions ?? [],
-    inviteLinks: m.inviteLinks ?? [],
-    candles: (m.candles ?? []).map((c) => ({
-      ...c,
-      name: c.name ?? "",
-      isEternal: c.isEternal ?? false,
-    })),
-  }));
-}
-
-function getSampleFamilyRelations(): FamilyRelation[] {
-  const now = new Date().toISOString();
-  return [
-    {
-      id: "rel-001",
-      fromMemorialId: "sample-001",
-      toMemorialId: "sample-002",
-      relation: "spouse",
-      note: "夫妻",
-      createdAt: now,
-    },
-    {
-      id: "rel-002",
-      fromMemorialId: "sample-001",
-      toMemorialId: "sample-003",
-      relation: "father",
-      note: "父子",
-      createdAt: now,
-    },
-  ];
-}
