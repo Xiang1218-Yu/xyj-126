@@ -441,8 +441,8 @@ export default function MemorialDetail() {
                   <CandleArea
                     candles={memorial.candles}
                     theme={theme}
-                    onAddCandle={(message) => {
-                      if (id) addCandle(id, { message });
+                    onAddCandle={(data) => {
+                      if (id) addCandle(id, data);
                     }}
                   />
                 </div>

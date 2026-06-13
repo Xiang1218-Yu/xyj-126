@@ -692,8 +692,8 @@ function getSampleMemorials(): Promise<Memorial[]> {
           { id: "f3", type: "rose", message: "爱您的孙女敬上", createdAt: sample1Date.toISOString() },
         ],
         candles: [
-          { id: "c1", message: "愿您在天堂安息", createdAt: sample1Date.toISOString() },
-          { id: "c2", message: "照亮回家的路", createdAt: sample1Date.toISOString() },
+          { id: "c1", name: "追思灯", message: "愿您在天堂安息", isEternal: true, createdAt: sample1Date.toISOString() },
+          { id: "c2", name: "", message: "照亮回家的路", isEternal: false, createdAt: sample1Date.toISOString() },
         ],
         isPrivate: false,
         password: "",
@@ -770,9 +770,9 @@ function getSampleMemorials(): Promise<Memorial[]> {
           { id: "f8", type: "tulip", message: "永远怀念", createdAt: sample2Date.toISOString() },
         ],
         candles: [
-          { id: "c3", message: "妈妈，想您了", createdAt: sample2Date.toISOString() },
-          { id: "c4", message: "点亮心灯照亮归途", createdAt: sample2Date.toISOString() },
-          { id: "c5", message: "愿您安息", createdAt: sample2Date.toISOString() },
+          { id: "c3", name: "慈母心灯", message: "妈妈，想您了", isEternal: true, createdAt: sample2Date.toISOString() },
+          { id: "c4", name: "", message: "点亮心灯照亮归途", isEternal: false, createdAt: sample2Date.toISOString() },
+          { id: "c5", name: "感恩灯", message: "愿您安息", isEternal: false, createdAt: sample2Date.toISOString() },
         ],
         isPrivate: false,
         password: "",
@@ -810,7 +810,7 @@ function getSampleMemorials(): Promise<Memorial[]> {
           { id: "f10", type: "lily", message: "", createdAt: sample2Date.toISOString() },
         ],
         candles: [
-          { id: "c6", message: "", createdAt: sample2Date.toISOString() },
+          { id: "c6", name: "", message: "", isEternal: false, createdAt: sample2Date.toISOString() },
         ],
         isPrivate: true,
         password: privatePassword,
@@ -838,6 +838,11 @@ async function migrateMemorials(memorials: Memorial[]): Promise<Memorial[]> {
     collaborators: m.collaborators ?? [],
     contributions: m.contributions ?? [],
     inviteLinks: m.inviteLinks ?? [],
+    candles: (m.candles ?? []).map((c) => ({
+      ...c,
+      name: c.name ?? "",
+      isEternal: c.isEternal ?? false,
+    })),
   }));
 }
 

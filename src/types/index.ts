@@ -54,7 +54,9 @@ export interface DriftBottle {
 
 export interface Candle {
   id: string;
+  name: string;
   message: string;
+  isEternal: boolean;
   createdAt: string;
 }
 
