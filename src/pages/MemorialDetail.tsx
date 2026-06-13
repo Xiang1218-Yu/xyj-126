@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import CollaboratePanel from "@/components/CollaboratePanel";
 import MemorialRitual from "@/components/MemorialRitual";
+import DriftBottleArea from "@/components/DriftBottleArea";
 import { useMemorialStore } from "@/store/memorialStore";
 import {
   formatDate,
@@ -38,7 +39,7 @@ import { cn } from "@/lib/utils";
 export default function MemorialDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial, loadFamilyRelations, getRelationsForMemorial, getCollaborators, currentCollaboratorId, getContributions } =
+  const { getMemorial, addMessage, addFlower, addCandle, loadMemorials, deleteMemorial, loadFamilyRelations, getRelationsForMemorial, getCollaborators, currentCollaboratorId, getContributions, loadDriftBottles, getDriftBottlesForMemorial, sendDriftBottle, markDriftBottleRead } =
     useMemorialStore();
 
   const [isVerified, setIsVerified] = useState(false);
@@ -52,7 +53,8 @@ export default function MemorialDetail() {
   useEffect(() => {
     loadMemorials();
     loadFamilyRelations();
-  }, [loadMemorials, loadFamilyRelations]);
+    loadDriftBottles();
+  }, [loadMemorials, loadFamilyRelations, loadDriftBottles]);
 
   const memorial = id ? getMemorial(id) : undefined;
 
@@ -444,6 +446,16 @@ export default function MemorialDetail() {
                     }}
                   />
                 </div>
+
+                {id && (
+                  <DriftBottleArea
+                    memorialId={id}
+                    driftBottles={getDriftBottlesForMemorial(id)}
+                    onSendBottle={(content) => sendDriftBottle(id, content)}
+                    onMarkRead={markDriftBottleRead}
+                    theme={theme}
+                  />
+                )}
 
                 <div className="theme-card rounded-2xl p-5 shadow-sm">
                   <h3

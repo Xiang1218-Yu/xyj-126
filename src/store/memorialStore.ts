@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme, BiographyDisplayMode, Collaborator, Contribution, InviteLink, ContributionType } from "@/types";
+import type { Memorial, Photo, Message, Flower, Candle, FamilyRelation, RelationType, VisualTheme, BiographyDisplayMode, Collaborator, Contribution, InviteLink, ContributionType, DriftBottle } from "@/types";
 import { RELATION_LABELS, INVERSE_RELATIONS } from "@/types";
 import { generateId, hashPassword } from "@/utils";
 
@@ -39,6 +39,13 @@ interface MemorialState {
   getContributions: (memorialId: string) => Contribution[];
   setCurrentCollaborator: (collaboratorId: string | null) => void;
   updateCollaboratorLastActive: (memorialId: string, collaboratorId: string) => void;
+  driftBottles: DriftBottle[];
+  loadDriftBottles: () => void;
+  saveDriftBottles: () => void;
+  sendDriftBottle: (fromMemorialId: string, content: string) => DriftBottle | null;
+  getDriftBottlesForMemorial: (memorialId: string) => DriftBottle[];
+  markDriftBottleRead: (bottleId: string) => void;
+  getUnreadDriftBottleCount: (memorialId: string) => number;
 }
 
 const STORAGE_KEY = "memorial_memorials";
@@ -69,11 +76,13 @@ const defaultMemorial: Omit<Memorial, "id" | "createdAt" | "updatedAt"> = {
 };
 
 const COLLABORATOR_STORAGE_KEY = "memorial_current_collaborator";
+const DRIFT_BOTTLE_STORAGE_KEY = "memorial_drift_bottles";
 
 export const useMemorialStore = create<MemorialState>((set, get) => ({
   memorials: [],
   familyRelations: [],
   currentCollaboratorId: localStorage.getItem(COLLABORATOR_STORAGE_KEY),
+  driftBottles: [],
   isLoaded: false,
 
   loadMemorials: () => {
@@ -571,6 +580,75 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
           : m
       ),
     }));
+  },
+
+  loadDriftBottles: () => {
+    try {
+      const stored = localStorage.getItem(DRIFT_BOTTLE_STORAGE_KEY);
+      if (stored) {
+        set({ driftBottles: JSON.parse(stored) });
+      }
+    } catch (error) {
+      console.error("Failed to load drift bottles:", error);
+    }
+  },
+
+  saveDriftBottles: () => {
+    try {
+      const { driftBottles } = get();
+      localStorage.setItem(DRIFT_BOTTLE_STORAGE_KEY, JSON.stringify(driftBottles));
+    } catch (error) {
+      console.error("Failed to save drift bottles:", error);
+    }
+  },
+
+  sendDriftBottle: (fromMemorialId, content) => {
+    const { memorials } = get();
+    const fromMemorial = memorials.find((m) => m.id === fromMemorialId);
+    if (!fromMemorial) return null;
+
+    const publicMemorials = memorials.filter(
+      (m) => !m.isPrivate && m.id !== fromMemorialId
+    );
+    if (publicMemorials.length === 0) return null;
+
+    const targetMemorial =
+      publicMemorials[Math.floor(Math.random() * publicMemorials.length)];
+
+    const bottle: DriftBottle = {
+      id: generateId(),
+      content,
+      fromMemorialId,
+      fromMemorialName: fromMemorial.name,
+      toMemorialId: targetMemorial.id,
+      createdAt: new Date().toISOString(),
+      isRead: false,
+    };
+
+    set((state) => ({
+      driftBottles: [...state.driftBottles, bottle],
+    }));
+    get().saveDriftBottles();
+    return bottle;
+  },
+
+  getDriftBottlesForMemorial: (memorialId) => {
+    return get().driftBottles.filter((b) => b.toMemorialId === memorialId);
+  },
+
+  markDriftBottleRead: (bottleId) => {
+    set((state) => ({
+      driftBottles: state.driftBottles.map((b) =>
+        b.id === bottleId ? { ...b, isRead: true } : b
+      ),
+    }));
+    get().saveDriftBottles();
+  },
+
+  getUnreadDriftBottleCount: (memorialId) => {
+    return get().driftBottles.filter(
+      (b) => b.toMemorialId === memorialId && !b.isRead
+    ).length;
   },
 }));
 

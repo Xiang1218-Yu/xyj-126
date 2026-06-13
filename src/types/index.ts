@@ -19,6 +19,16 @@ export interface Flower {
   createdAt: string;
 }
 
+export interface DriftBottle {
+  id: string;
+  content: string;
+  fromMemorialId: string;
+  fromMemorialName: string;
+  toMemorialId: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
 export interface Candle {
   id: string;
   message: string;
