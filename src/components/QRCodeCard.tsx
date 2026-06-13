@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from "react";
+import html2canvas from "html2canvas";
 import { QRCodeCanvas } from "qrcode.react";
 import { Download, Share2, QrCode, Printer, ImagePlus, X } from "lucide-react";
 import { QR_CODE_STYLES, type QRCodeShape } from "@/types";
@@ -14,6 +15,13 @@ interface QRCodeCardProps {
   avatar?: string;
   theme?: string;
 }
+
+const QR_SIZES: Record<QRCodeShape, number> = {
+  classic: 180,
+  tombstone: 120,
+  heart: 100,
+  petal: 110,
+};
 
 function ShapeFrame({
   shape,
@@ -100,7 +108,12 @@ function LogoOverlay({ logoUrl }: { logoUrl?: string }) {
   return (
     <div className="qr-logo-overlay">
       <div className="qr-logo-bg">
-        <img src={logoUrl} alt="Logo" className="qr-logo-img" />
+        <img
+          src={logoUrl}
+          alt="Logo"
+          crossOrigin="anonymous"
+          style={{ width: 28, height: 28, objectFit: "contain", borderRadius: 4, display: "block" }}
+        />
       </div>
     </div>
   );
@@ -127,13 +140,15 @@ function NameplateTemplate({
   logoUrl?: string;
   theme?: string;
 }) {
+  const qrSize = shape === "classic" ? 200 : QR_SIZES[shape];
+
   return (
     <div className={cn("nameplate-template", theme && `theme-${theme}`)}>
       <div className="nameplate-inner">
         <div className="nameplate-header">
           {avatar && (
             <div className="nameplate-avatar">
-              <img src={avatar} alt={name} />
+              <img src={avatar} alt={name} crossOrigin="anonymous" />
             </div>
           )}
           <div className="nameplate-title">
@@ -154,7 +169,7 @@ function NameplateTemplate({
           <ShapeFrame shape={shape} className="nameplate-qr-frame">
             <QRCodeCanvas
               value={url}
-              size={shape === "classic" ? 200 : 160}
+              size={qrSize}
               level="H"
               includeMargin={false}
               fgColor={theme === "starry" ? "#e8ecf5" : "#1a3a2f"}
@@ -176,6 +191,20 @@ function NameplateTemplate({
   );
 }
 
+async function captureElement(el: HTMLElement, filename: string) {
+  const canvas = await html2canvas(el, {
+    scale: 2,
+    useCORS: true,
+    allowTaint: false,
+    backgroundColor: null,
+    logging: false,
+  });
+  const link = document.createElement("a");
+  link.download = filename;
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+}
+
 export default function QRCodeCard({
   url,
   name,
@@ -186,7 +215,7 @@ export default function QRCodeCard({
   avatar,
   theme = "default",
 }: QRCodeCardProps) {
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const nameplateRef = useRef<HTMLDivElement>(null);
   const [selectedShape, setSelectedShape] = useState<QRCodeShape>("classic");
   const [logoUrl, setLogoUrl] = useState<string>("");
@@ -194,174 +223,68 @@ export default function QRCodeCard({
   const [showLogoInput, setShowLogoInput] = useState(false);
   const [logoInputValue, setLogoInputValue] = useState("");
 
-  const downloadQRCode = useCallback(() => {
-    const canvas = canvasRef.current?.querySelector("canvas");
-    if (!canvas) return;
-    const link = document.createElement("a");
-    link.download = `${name}-纪念页二维码-${selectedShape}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
+  const downloadQRCode = useCallback(async () => {
+    const el = exportRef.current;
+    if (!el) return;
+    await captureElement(el, `${name}-纪念页二维码-${selectedShape}.png`);
   }, [name, selectedShape]);
 
-  const downloadNameplate = useCallback(() => {
+  const downloadNameplate = useCallback(async () => {
     const el = nameplateRef.current;
     if (!el) return;
-
-    const canvas = document.createElement("canvas");
-    const scale = 2;
-    const w = 600;
-    const h = 900;
-    canvas.width = w * scale;
-    canvas.height = h * scale;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.scale(scale, scale);
-
-    ctx.fillStyle = theme === "starry" ? "#0f1937" : "#faf7f0";
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.fillStyle = theme === "starry" ? "#e8ecf5" : "#1a3a2f";
-    ctx.font = "bold 28px serif";
-    ctx.textAlign = "center";
-    ctx.fillText(name, w / 2, 120);
-
-    if (birthDate && deathDate) {
-      ctx.fillStyle = theme === "starry" ? "#9ca8c8" : "#6f7e61";
-      ctx.font = "16px sans-serif";
-      ctx.fillText(`${birthDate} — ${deathDate}`, w / 2, 155);
-    }
-
-    if (epitaph) {
-      ctx.fillStyle = theme === "starry" ? "#9ca8c8" : "#6f7e61";
-      ctx.font = "italic 14px serif";
-      ctx.fillText(`"${epitaph}"`, w / 2, 190);
-    }
-
-    ctx.fillStyle = theme === "starry" ? "#9ca8c8" : "#6f7e61";
-    ctx.font = "12px sans-serif";
-    ctx.fillText(`扫码查看${name}的纪念页`, w / 2, h - 80);
-
-    ctx.fillStyle = theme === "starry" ? "#4a5a80" : "#d4d9cd";
-    ctx.fillRect(w / 2 - 80, h - 50, 160, 1);
-
-    ctx.fillStyle = theme === "starry" ? "#6a7a9a" : "#8f9c82";
-    ctx.font = "10px serif";
-    ctx.fillText("永恒纪念", w / 2, h - 30);
-
-    const qrCanvas = canvasRef.current?.querySelector("canvas");
-    if (qrCanvas) {
-      const qrSize = 200;
-      ctx.drawImage(qrCanvas, (w - qrSize) / 2, 230, qrSize, qrSize);
-    }
-
-    const link = document.createElement("a");
-    link.download = `${name}-铭牌.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  }, [name, epitaph, birthDate, deathDate, theme]);
+    await captureElement(el, `${name}-铭牌.png`);
+  }, [name]);
 
   const printNameplate = useCallback(() => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     const nameplateHTML = nameplateRef.current?.innerHTML || "";
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8">
-        <title>${name}-铭牌</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap');
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-          @media print {
-            body { margin: 0; }
-            @page { size: A4; margin: 15mm; }
-          }
-          .nameplate-template {
-            width: 600px;
-            padding: 40px;
-            background: ${theme === "starry" ? "#0f1937" : "#faf7f0"};
-            border-radius: 16px;
-          }
-          .nameplate-inner {
-            border: 2px solid ${theme === "starry" ? "#3a4a70" : "#d4d9cd"};
-            border-radius: 12px;
-            padding: 32px;
-            text-align: center;
-          }
-          .nameplate-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 16px;
-            margin-bottom: 20px;
-          }
-          .nameplate-avatar {
-            width: 64px;
-            height: 64px;
-            border-radius: 50%;
-            overflow: hidden;
-            border: 2px solid ${theme === "starry" ? "#3a4a70" : "#d4d9cd"};
-          }
-          .nameplate-avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-          .nameplate-name {
-            font-family: 'Noto Serif SC', serif;
-            font-size: 28px;
-            font-weight: 600;
-            color: ${theme === "starry" ? "#e8ecf5" : "#1a3a2f"};
-          }
-          .nameplate-dates {
-            font-size: 14px;
-            color: ${theme === "starry" ? "#9ca8c8" : "#6f7e61"};
-            margin-top: 4px;
-          }
-          .nameplate-epitaph {
-            font-family: 'Noto Serif SC', serif;
-            font-style: italic;
-            font-size: 14px;
-            color: ${theme === "starry" ? "#9ca8c8" : "#6f7e61"};
-            margin-bottom: 24px;
-          }
-          .nameplate-qr-area {
-            display: flex;
-            justify-content: center;
-            margin: 24px 0;
-          }
-          .nameplate-scan-hint {
-            font-size: 12px;
-            color: ${theme === "starry" ? "#9ca8c8" : "#6f7e61"};
-            margin-top: 12px;
-          }
-          .nameplate-footer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 20px;
-          }
-          .nameplate-footer-line {
-            width: 80px;
-            height: 1px;
-            background: ${theme === "starry" ? "#3a4a70" : "#d4d9cd"};
-          }
-          .nameplate-footer-text {
-            font-family: 'Noto Serif SC', serif;
-            font-size: 10px;
-            color: ${theme === "starry" ? "#6a7a9a" : "#8f9c82"};
-          }
-        </style>
-      </head>
-      <body>
-        ${nameplateHTML}
-        <script>window.onload = function() { window.print(); }</script>
-      </body>
-      </html>
-    `);
+
+    const themeBg = theme === "starry" ? "#0f1937"
+      : theme === "sakura" ? "#fff5f7"
+      : theme === "autumn" ? "#fff8e7"
+      : theme === "snow" ? "#f0f7ff"
+      : "#faf7f0";
+    const themeBorder = theme === "starry" ? "#3a4a70"
+      : theme === "sakura" ? "#ffc8d8"
+      : theme === "autumn" ? "#e8c99b"
+      : theme === "snow" ? "#d0e0f0"
+      : "#d4d9cd";
+    const themeText = theme === "starry" ? "#e8ecf5" : "#1a3a2f";
+    const themeSub = theme === "starry" ? "#9ca8c8" : "#6f7e61";
+    const themeMuted = theme === "starry" ? "#6a7a9a" : "#8f9c82";
+    const themeLine = theme === "starry" ? "#3a4a70" : "#d4d9cd";
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>${name}-铭牌</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f5f5f5}
+@media print{body{margin:0;background:#fff}@page{size:A4;margin:15mm}}
+.nameplate-template{width:600px;padding:40px;background:${themeBg};border-radius:16px}
+.nameplate-inner{border:2px solid ${themeBorder};border-radius:12px;padding:32px;text-align:center}
+.nameplate-header{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:20px}
+.nameplate-avatar{width:64px;height:64px;border-radius:50%;overflow:hidden;border:2px solid ${themeBorder};flex-shrink:0}
+.nameplate-avatar img{width:100%;height:100%;object-fit:cover}
+.nameplate-name{font-family:'Noto Serif SC',serif;font-size:28px;font-weight:600;color:${themeText}}
+.nameplate-dates{font-size:14px;color:${themeSub};margin-top:4px}
+.nameplate-epitaph{font-family:'Noto Serif SC',serif;font-style:italic;font-size:14px;color:${themeSub};margin-bottom:24px}
+.nameplate-qr-area{display:flex;justify-content:center;margin:24px 0}
+.qr-shape-tombstone{position:relative;display:inline-flex;align-items:center;justify-content:center;width:160px;height:210px;background:linear-gradient(180deg,#f8f6f0,#e8e4d8);border-radius:80px 80px 8px 8px;padding:20px 10px;color:#8f9c82}
+.qr-shape-heart{position:relative;display:inline-flex;align-items:center;justify-content:center;width:180px;height:170px;background:linear-gradient(180deg,#fff5f7,#ffe4ec);clip-path:path('M90,160 Q5,100 5,52 Q5,8 49,8 Q90,8 90,44 Q90,8 131,8 Q175,8 175,52 Q175,100 90,160 Z');padding:20px;color:#e8a0b0}
+.qr-shape-petal{position:relative;display:inline-flex;align-items:center;justify-content:center;width:160px;height:160px;background:linear-gradient(135deg,#fef3e2,#fce4d6 30%,#f5d0e0 70%,#e8d0f0);border-radius:50% 50% 50% 50%/60% 60% 40% 40%;padding:20px;color:#d4a0c0}
+.qr-logo-overlay{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:10;pointer-events:none}
+.qr-logo-bg{width:40px;height:40px;border-radius:8px;background:white;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,.12);border:2px solid white}
+.qr-logo-bg img{width:28px;height:28px;object-fit:contain;border-radius:4px}
+.nameplate-scan-hint{font-size:12px;color:${themeSub};margin-top:12px}
+.nameplate-footer{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:20px}
+.nameplate-footer-line{width:80px;height:1px;background:${themeLine}}
+.nameplate-footer-text{font-family:'Noto Serif SC',serif;font-size:10px;color:${themeMuted}}
+</style></head><body>
+${nameplateHTML}
+<script>window.onload=function(){window.print()}</script>
+</body></html>`);
     printWindow.document.close();
   }, [name, theme]);
 
@@ -374,7 +297,7 @@ export default function QRCodeCard({
           url: url,
         });
       } catch {
-        // share cancelled
+        // cancelled
       }
     } else {
       await navigator.clipboard.writeText(url);
@@ -403,9 +326,11 @@ export default function QRCodeCard({
     setShowLogoInput(false);
   };
 
+  const qrSize = QR_SIZES[selectedShape];
+
   if (compact) {
     return (
-      <div ref={canvasRef} id="qr-code-canvas" className="w-full h-full flex items-center justify-center">
+      <div id="qr-code-canvas" className="w-full h-full flex items-center justify-center">
         <QRCodeCanvas
           value={url}
           size={80}
@@ -450,7 +375,7 @@ export default function QRCodeCard({
 
         <div className="flex flex-col items-center">
           <div
-            ref={canvasRef}
+            ref={exportRef}
             className={cn(
               "mb-4 flex items-center justify-center",
               selectedShape === "classic" && "p-4 bg-white rounded-xl border border-memorial-100"
@@ -459,7 +384,7 @@ export default function QRCodeCard({
             <ShapeFrame shape={selectedShape} className="qr-shape-container">
               <QRCodeCanvas
                 value={url}
-                size={selectedShape === "classic" ? 180 : 140}
+                size={qrSize}
                 level="H"
                 includeMargin={false}
                 fgColor="#1a3a2f"
@@ -629,20 +554,6 @@ export default function QRCodeCard({
           </div>
         </div>
       )}
-
-      <div className="hidden">
-        <NameplateTemplate
-          url={url}
-          name={name}
-          epitaph={epitaph}
-          birthDate={birthDate}
-          deathDate={deathDate}
-          avatar={avatar}
-          shape={selectedShape}
-          logoUrl={logoUrl}
-          theme={theme}
-        />
-      </div>
     </>
   );
 }

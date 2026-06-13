@@ -893,6 +893,7 @@ body {
   border-radius: 100px 100px 8px 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   color: #8f9c82;
+  padding: 50px 20px 20px;
 }
 
 .qr-shape-tombstone-border {
@@ -909,7 +910,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: -16px;
+  overflow: hidden;
 }
 
 .qr-shape-heart {
@@ -917,12 +918,12 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 220px;
-  height: 210px;
+  width: 240px;
+  height: 220px;
   background: linear-gradient(180deg, #fff5f7 0%, #ffe4ec 100%);
-  clip-path: path("M110,200 Q5,130 5,65 Q5,10 60,10 Q110,10 110,55 Q110,10 160,10 Q215,10 215,65 Q215,130 110,200 Z");
-  box-shadow: none;
+  clip-path: path("M120,210 Q5,140 5,70 Q5,10 65,10 Q120,10 120,60 Q120,10 175,10 Q235,10 235,70 Q235,140 120,210 Z");
   color: #e8a0b0;
+  padding: 40px 30px 20px;
 }
 
 .qr-shape-heart-border {
@@ -940,7 +941,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 16px;
+  margin-top: 20px;
+  overflow: hidden;
 }
 
 .qr-shape-petal {
@@ -948,12 +950,13 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 200px;
-  height: 200px;
+  width: 220px;
+  height: 220px;
   background: linear-gradient(135deg, #fef3e2 0%, #fce4d6 30%, #f5d0e0 70%, #e8d0f0 100%);
   border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   color: #d4a0c0;
+  padding: 30px;
 }
 
 .qr-shape-petal-border {
@@ -970,6 +973,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .qr-logo-overlay {
@@ -1121,16 +1125,23 @@ body {
 .nameplate-qr-frame.qr-shape-tombstone {
   width: 160px;
   height: 210px;
+  padding: 40px 15px 15px;
 }
 
 .nameplate-qr-frame.qr-shape-heart {
-  width: 180px;
-  height: 170px;
+  width: 200px;
+  height: 180px;
+  padding: 30px 25px 15px;
+}
+
+.nameplate-qr-frame.qr-shape-heart-inner {
+  margin-top: 10px;
 }
 
 .nameplate-qr-frame.qr-shape-petal {
-  width: 160px;
-  height: 160px;
+  width: 180px;
+  height: 180px;
+  padding: 25px;
 }
 
 .nameplate-scan-hint {
