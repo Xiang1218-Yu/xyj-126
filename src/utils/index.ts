@@ -252,3 +252,50 @@ export function parseBiographyToTimeline(
 
   return nodes.map((n, i) => ({ ...n, id: `tl-${Date.now()}-${i}` }));
 }
+
+export type FestivalType =
+  | "spring"
+  | "qingming"
+  | "midautumn"
+  | "dragonboat"
+  | "yuanxiao"
+  | "chongyang"
+  | null;
+
+export interface FestivalInfo {
+  type: FestivalType;
+  name: string;
+  decoration: string;
+}
+
+export function getCurrentFestival(): FestivalInfo | null {
+  const today = new Date();
+  const month = today.getMonth() + 1;
+  const day = today.getDate();
+
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 20)) {
+    return { type: "spring", name: "春节", decoration: "lantern" };
+  }
+
+  if (month === 4 && day >= 1 && day <= 10) {
+    return { type: "qingming", name: "清明节", decoration: "willow" };
+  }
+
+  if ((month === 9 && day >= 15) || (month === 10 && day <= 15)) {
+    return { type: "midautumn", name: "中秋节", decoration: "moon" };
+  }
+
+  if ((month === 5 && day >= 25) || (month === 6 && day <= 25)) {
+    return { type: "dragonboat", name: "端午节", decoration: "zongzi" };
+  }
+
+  if (month === 2 && day >= 5 && day <= 25) {
+    return { type: "yuanxiao", name: "元宵节", decoration: "lantern" };
+  }
+
+  if (month === 10 && day >= 1 && day <= 30) {
+    return { type: "chongyang", name: "重阳节", decoration: "chrysanthemum" };
+  }
+
+  return null;
+}

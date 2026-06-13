@@ -32,6 +32,7 @@ import PasswordProtected from "@/components/PasswordProtected";
 import ThemeSelector from "@/components/ThemeSelector";
 import BiographyTimeline from "@/components/BiographyTimeline";
 import WordCloud from "@/components/WordCloud";
+import FestivalDecorations from "@/components/FestivalDecorations";
 import { cn } from "@/lib/utils";
 
 export default function MemorialDetail() {
@@ -161,6 +162,7 @@ export default function MemorialDetail() {
         currentTheme={memorial.theme}
         adminPasswordHash={memorial.adminPassword || memorial.password}
       />
+      <FestivalDecorations theme={memorial.theme} />
       <div className="relative z-10">
         <div className="sticky top-16 md:top-20 z-30 theme-topbar">
           <div className="container mx-auto px-4 py-3 flex items-center justify-between">
