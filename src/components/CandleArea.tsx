@@ -136,7 +136,7 @@ export default function CandleArea({ candles, onAddCandle, theme = "default" }: 
       >
         <Danmaku items={candles} variant="candle" />
 
-        <div className="flex flex-wrap justify-center gap-5">
+        <div className="flex flex-wrap justify-center gap-6">
           {displayCandles.map((candle, index) => (
             <div
               key={candle.id}
@@ -144,44 +144,68 @@ export default function CandleArea({ candles, onAddCandle, theme = "default" }: 
               style={{ animationDelay: `${index * 0.05}s`, opacity: 0 }}
               onClick={() => setSelectedCandle(candle)}
             >
-              <div className="relative w-6 h-16">
-                {candle.isEternal && (
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 animate-pulse">
-                    <Sparkles
-                      className={cn(
-                        "w-4 h-4",
-                        theme === "starry" ? "text-amber-300" : "text-gold-500"
-                      )}
-                    />
+              {candle.isEternal ? (
+                <div className="relative w-10 h-24">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-t from-gold-400/60 via-amber-400/30 to-transparent blur-md animate-pulse" />
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-12 h-12 rounded-full bg-gold-400/20 blur-xl animate-pulse" style={{ animationDuration: "2s" }} />
+                  <div className="absolute -top-1 left-1/2 -translate-x-1/2">
+                    <div className="relative">
+                      <div className="absolute -left-3 -top-2 text-[8px] text-amber-300 animate-ping" style={{ animationDuration: "1.5s" }}>✦</div>
+                      <div className="absolute left-2 -top-1 text-[10px] text-gold-400 animate-pulse" style={{ animationDelay: "0.5s" }}>✧</div>
+                      <div className="absolute -left-1 -top-4 text-[8px] text-amber-200 animate-pulse" style={{ animationDelay: "1s" }}>✦</div>
+                    </div>
+                    <div className="animate-bounce" style={{ animationDuration: "2s" }}>
+                      <Sparkles
+                        className={cn(
+                          "w-5 h-5",
+                          theme === "starry" ? "text-amber-300" : "text-gold-500"
+                        )}
+                      />
+                    </div>
                   </div>
-                )}
-                <div
-                  className={cn(
-                    "absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-10 rounded-sm transition-all group-hover:scale-105",
-                    candle.isEternal
-                      ? "bg-gradient-to-t from-gold-400 to-gold-200 shadow-md shadow-gold-400/30"
-                      : "bg-gradient-to-t from-candle-300 to-candle-200"
-                  )}
-                />
-                <div
-                  className={cn(
-                    "absolute top-0 left-1/2 -translate-x-1/2 w-3 h-6 rounded-full animate-flicker origin-bottom",
-                    candle.isEternal
-                      ? "bg-gradient-to-t from-gold-500 via-amber-400 to-yellow-200 shadow-lg shadow-gold-400/50"
-                      : "bg-gradient-to-t from-candle-500 via-candle-400 to-yellow-200"
-                  )}
-                  style={{ filter: "blur(0.5px)" }}
-                />
-                <div
-                  className="absolute top-2 left-1/2 -translate-x-1/2 w-1.5 h-3 bg-gradient-to-t from-orange-400 to-yellow-200 rounded-full animate-flicker origin-bottom"
-                  style={{ animationDelay: "0.2s" }}
-                />
-              </div>
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-14 bg-gradient-to-t from-red-700 via-red-600 to-gold-500 rounded-t-sm shadow-lg shadow-gold-500/40 group-hover:scale-105 transition-transform" />
+                  <div className="absolute bottom-[56px] left-1/2 -translate-x-1/2 w-10 h-3 bg-gradient-to-r from-gold-600 via-gold-400 to-gold-600 rounded-sm shadow-md" />
+                  <div className="absolute bottom-[62px] left-1/2 -translate-x-1/2 w-8 h-1.5 bg-gold-300 rounded-sm" />
+                  <div
+                    className="absolute top-2 left-1/2 -translate-x-1/2 w-6 h-10 bg-gradient-to-t from-orange-600 via-gold-400 to-yellow-200 rounded-full animate-flicker origin-bottom shadow-2xl shadow-gold-400/60"
+                    style={{ filter: "blur(0.3px)" }}
+                  />
+                  <div
+                    className="absolute top-4 left-1/2 -translate-x-1/2 w-4 h-7 bg-gradient-to-t from-orange-400 via-yellow-300 to-white rounded-full animate-flicker origin-bottom"
+                    style={{ animationDelay: "0.1s", filter: "blur(0.5px)" }}
+                  />
+                  <div
+                    className="absolute top-6 left-1/2 -translate-x-1/2 w-2 h-4 bg-gradient-to-t from-yellow-200 to-white rounded-full animate-flicker origin-bottom"
+                    style={{ animationDelay: "0.2s" }}
+                  />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-2 bg-gradient-to-r from-gold-700 via-gold-500 to-gold-700 rounded-full shadow-md" />
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-14 h-2.5 bg-gradient-to-r from-gold-800 via-gold-600 to-gold-800 rounded-full shadow-lg" />
+                </div>
+              ) : (
+                <div className="relative w-5 h-14">
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-3 h-9 bg-gradient-to-t from-candle-400 to-candle-200 rounded-sm group-hover:scale-105 transition-transform" />
+                  <div
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-2.5 h-5 bg-gradient-to-t from-candle-500 via-candle-400 to-yellow-200 rounded-full animate-flicker origin-bottom"
+                    style={{ filter: "blur(0.5px)" }}
+                  />
+                  <div
+                    className="absolute top-1.5 left-1/2 -translate-x-1/2 w-1.5 h-3 bg-gradient-to-t from-orange-400 to-yellow-200 rounded-full animate-flicker origin-bottom"
+                    style={{ animationDelay: "0.2s" }}
+                  />
+                  <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-6 h-1 bg-candle-500/40 rounded-full" />
+                </div>
+              )}
               {candle.name && (
                 <p
                   className={cn(
-                    "mt-2 text-xs font-medium max-w-[72px] truncate",
-                    theme === "starry" ? "text-gray-300" : "text-memorial-700"
+                    "mt-2 text-xs font-medium max-w-[80px] truncate",
+                    candle.isEternal
+                      ? theme === "starry"
+                        ? "text-gold-300"
+                        : "text-gold-700"
+                      : theme === "starry"
+                      ? "text-gray-300"
+                      : "text-memorial-700"
                   )}
                   title={candle.name}
                 >
@@ -412,39 +436,57 @@ export default function CandleArea({ candles, onAddCandle, theme = "default" }: 
             </button>
 
             <div className="text-center mb-4">
-              <div className="relative w-8 h-20 mx-auto mb-4">
-                {selectedCandle.isEternal && (
-                  <div className="absolute -top-6 left-1/2 -translate-x-1/2 animate-pulse">
-                    <Sparkles
-                      className={cn(
-                        "w-5 h-5",
-                        theme === "starry" ? "text-amber-300" : "text-gold-500"
-                      )}
-                    />
+              {selectedCandle.isEternal ? (
+                <div className="relative w-14 h-32 mx-auto mb-6">
+                  <div className="absolute inset-0 rounded-full bg-gradient-to-t from-gold-400/60 via-amber-400/30 to-transparent blur-lg animate-pulse" />
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full bg-gold-400/20 blur-2xl animate-pulse" style={{ animationDuration: "2s" }} />
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2">
+                    <div className="relative">
+                      <div className="absolute -left-4 -top-3 text-sm text-amber-300 animate-ping" style={{ animationDuration: "1.5s" }}>✦</div>
+                      <div className="absolute left-3 -top-2 text-base text-gold-400 animate-pulse" style={{ animationDelay: "0.5s" }}>✧</div>
+                      <div className="absolute -left-2 -top-5 text-sm text-amber-200 animate-pulse" style={{ animationDelay: "1s" }}>✦</div>
+                    </div>
+                    <div className="animate-bounce" style={{ animationDuration: "2s" }}>
+                      <Sparkles
+                        className={cn(
+                          "w-7 h-7",
+                          theme === "starry" ? "text-amber-300" : "text-gold-500"
+                        )}
+                      />
+                    </div>
                   </div>
-                )}
-                <div
-                  className={cn(
-                    "absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-12 rounded-sm",
-                    selectedCandle.isEternal
-                      ? "bg-gradient-to-t from-gold-400 to-gold-200 shadow-md shadow-gold-400/30"
-                      : "bg-gradient-to-t from-candle-300 to-candle-200"
-                  )}
-                />
-                <div
-                  className={cn(
-                    "absolute top-0 left-1/2 -translate-x-1/2 w-4 h-8 rounded-full animate-flicker origin-bottom",
-                    selectedCandle.isEternal
-                      ? "bg-gradient-to-t from-gold-500 via-amber-400 to-yellow-200 shadow-lg shadow-gold-400/50"
-                      : "bg-gradient-to-t from-candle-500 via-candle-400 to-yellow-200"
-                  )}
-                  style={{ filter: "blur(0.5px)" }}
-                />
-                <div
-                  className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-4 bg-gradient-to-t from-orange-400 to-yellow-200 rounded-full animate-flicker origin-bottom"
-                  style={{ animationDelay: "0.2s" }}
-                />
-              </div>
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-11 h-20 bg-gradient-to-t from-red-700 via-red-600 to-gold-500 rounded-t-sm shadow-xl shadow-gold-500/40" />
+                  <div className="absolute bottom-[80px] left-1/2 -translate-x-1/2 w-14 h-4 bg-gradient-to-r from-gold-600 via-gold-400 to-gold-600 rounded-sm shadow-lg" />
+                  <div className="absolute bottom-[88px] left-1/2 -translate-x-1/2 w-11 h-2 bg-gold-300 rounded-sm" />
+                  <div
+                    className="absolute top-3 left-1/2 -translate-x-1/2 w-8 h-14 bg-gradient-to-t from-orange-600 via-gold-400 to-yellow-200 rounded-full animate-flicker origin-bottom shadow-2xl shadow-gold-400/60"
+                    style={{ filter: "blur(0.3px)" }}
+                  />
+                  <div
+                    className="absolute top-6 left-1/2 -translate-x-1/2 w-5 h-10 bg-gradient-to-t from-orange-400 via-yellow-300 to-white rounded-full animate-flicker origin-bottom"
+                    style={{ animationDelay: "0.1s", filter: "blur(0.5px)" }}
+                  />
+                  <div
+                    className="absolute top-9 left-1/2 -translate-x-1/2 w-3 h-6 bg-gradient-to-t from-yellow-200 to-white rounded-full animate-flicker origin-bottom"
+                    style={{ animationDelay: "0.2s" }}
+                  />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-2.5 bg-gradient-to-r from-gold-700 via-gold-500 to-gold-700 rounded-full shadow-lg" />
+                  <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-20 h-3 bg-gradient-to-r from-gold-800 via-gold-600 to-gold-800 rounded-full shadow-xl" />
+                </div>
+              ) : (
+                <div className="relative w-10 h-20 mx-auto mb-6">
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-7 h-14 bg-gradient-to-t from-candle-400 to-candle-200 rounded-sm" />
+                  <div
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-8 bg-gradient-to-t from-candle-500 via-candle-400 to-yellow-200 rounded-full animate-flicker origin-bottom"
+                    style={{ filter: "blur(0.5px)" }}
+                  />
+                  <div
+                    className="absolute top-2.5 left-1/2 -translate-x-1/2 w-3 h-5 bg-gradient-to-t from-orange-400 to-yellow-200 rounded-full animate-flicker origin-bottom"
+                    style={{ animationDelay: "0.2s" }}
+                  />
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-candle-500/40 rounded-full" />
+                </div>
+              )}
 
               {selectedCandle.isEternal && (
                 <span
