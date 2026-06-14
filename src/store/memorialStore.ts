@@ -42,9 +42,18 @@ const COLLABORATOR_STORAGE_KEY = "memorial_current_collaborator";
 function loadStorage<T>(key: string): T[] | null {
   try {
     const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T[]) : null;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as T[];
+    } catch (parseError) {
+      console.error(`load [${key}] JSON parse failed:`, parseError);
+      throw parseError;
+    }
   } catch (e) {
     console.error(`load [${key}] failed:`, e);
+    if (e instanceof SyntaxError) {
+      throw e;
+    }
     return null;
   }
 }
@@ -403,10 +412,8 @@ export const useMemorialStore = create<MemorialState>((set, get) => ({
 
     set((state) => ({
       memorials: mapParentById(state.memorials, memorialId, (m) =>
-      addNestedItem<Memorial, InviteLink>(m, "inviteLinks", {
-        ...newInvite,
-      } as unknown as Omit<InviteLink, "id" | "createdAt">)
-    ),
+        addNestedItemRaw<Memorial, InviteLink>(m, "inviteLinks", newInvite)
+      ),
     }));
     get().saveMemorials();
     return newInvite;

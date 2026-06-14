@@ -26,7 +26,7 @@ export function daysUntilDeathAnniversary(deathDate: string): number {
   const death = new Date(deathDate);
   const thisYearAnniversary = new Date(today.getFullYear(), death.getMonth(), death.getDate());
 
-  if (thisYearAnniversary < today) {
+  if (thisYearAnniversary.setHours(0, 0, 0, 0) < today.setHours(0, 0, 0, 0)) {
     thisYearAnniversary.setFullYear(today.getFullYear() + 1);
   }
 
@@ -155,13 +155,13 @@ const DATE_PATTERNS = [
   /(\d{4})年/g,
 ];
 
-const ERA_PATTERNS: Array<{ pattern: RegExp; yearOffset: (birthYear: number) => number; label: string }> = [
-  { pattern: /(出生|诞生|出世)/g, yearOffset: (y) => y, label: "出生" },
-  { pattern: /(幼年|童年|小时候)/g, yearOffset: (y) => y + 5, label: "幼年" },
-  { pattern: /(少年|青年时期|青年时代|年轻时|年轻的时候)/g, yearOffset: (y) => y + 18, label: "青年" },
-  { pattern: /(中年|壮年)/g, yearOffset: (y) => y + 40, label: "中年" },
-  { pattern: /(晚年|老年|退休后|退休以后)/g, yearOffset: (y) => y + 60, label: "晚年" },
-  { pattern: /(逝世|去世|离世|辞世|驾鹤|因病医治无效)/g, yearOffset: () => 9999, label: "逝世" },
+const ERA_PATTERNS: Array<{ pattern: RegExp; yearOffset: (birthYear: number, deathYear: number) => number; label: string }> = [
+  { pattern: /(出生|诞生|出世)/, yearOffset: (y) => y, label: "出生" },
+  { pattern: /(幼年|童年|小时候)/, yearOffset: (y) => y + 5, label: "幼年" },
+  { pattern: /(少年|青年时期|青年时代|年轻时|年轻的时候)/, yearOffset: (y) => y + 18, label: "青年" },
+  { pattern: /(中年|壮年)/, yearOffset: (y) => y + 40, label: "中年" },
+  { pattern: /(晚年|老年|退休后|退休以后)/, yearOffset: (y) => y + 60, label: "晚年" },
+  { pattern: /(逝世|去世|离世|辞世|驾鹤|因病医治无效)/, yearOffset: (_, d) => d, label: "逝世" },
 ];
 
 function parseDateFromText(text: string, birthYear: number, deathYear: number): ParsedDate | null {
@@ -182,7 +182,7 @@ function parseDateFromText(text: string, birthYear: number, deathYear: number): 
 
   for (const era of ERA_PATTERNS) {
     if (era.pattern.test(text)) {
-      const y = era.label === "逝世" ? deathYear : era.yearOffset(birthYear);
+      const y = era.yearOffset(birthYear, deathYear);
       const month = 6;
       const day = 15;
       const dateStr = `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -240,6 +240,8 @@ export function parseBiographyToTimeline(
   };
 
   for (const line of lines) {
+    if (!line.trim()) continue;
+    
     const parsedDate = parseDateFromText(line, birthYear, deathYear);
 
     if (parsedDate) {
@@ -249,17 +251,7 @@ export function parseBiographyToTimeline(
     } else if (currentDate) {
       accumulatedText += (accumulatedText ? "\n" : "") + line;
     } else {
-      const fallbackYear = birthYear + Math.floor(nodes.length * 10);
-      const month = 6;
-      const day = 15;
-      currentDate = {
-        year: fallbackYear,
-        month,
-        day,
-        dateText: `${fallbackYear}年`,
-        date: `${fallbackYear}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
-      };
-      accumulatedText = line;
+      accumulatedText += (accumulatedText ? "\n" : "") + line;
     }
   }
   finalizeNode();
@@ -307,12 +299,20 @@ export function getCurrentFestival(): FestivalInfo | null {
   const month = today.getMonth() + 1;
   const day = today.getDate();
 
-  if ((month === 1 && day >= 20) || (month === 2 && day <= 20)) {
+  if (month === 2 && day >= 5 && day <= 20) {
+    return { type: "yuanxiao", name: "元宵节", decoration: "lantern" };
+  }
+
+  if ((month === 1 && day >= 20) || (month === 2 && day <= 4)) {
     return { type: "spring", name: "春节", decoration: "lantern" };
   }
 
   if (month === 4 && day >= 1 && day <= 10) {
     return { type: "qingming", name: "清明节", decoration: "willow" };
+  }
+
+  if (month === 10 && day >= 16 && day <= 30) {
+    return { type: "chongyang", name: "重阳节", decoration: "chrysanthemum" };
   }
 
   if ((month === 9 && day >= 15) || (month === 10 && day <= 15)) {
@@ -323,12 +323,8 @@ export function getCurrentFestival(): FestivalInfo | null {
     return { type: "dragonboat", name: "端午节", decoration: "zongzi" };
   }
 
-  if (month === 2 && day >= 5 && day <= 25) {
+  if (month === 2 && day >= 21 && day <= 25) {
     return { type: "yuanxiao", name: "元宵节", decoration: "lantern" };
-  }
-
-  if (month === 10 && day >= 1 && day <= 30) {
-    return { type: "chongyang", name: "重阳节", decoration: "chrysanthemum" };
   }
 
   return null;
