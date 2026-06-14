@@ -4,15 +4,19 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "vite --mode development",
+    "dev:test": "vite --mode test",
+    "build": "tsc -b && vite build --mode production",
+    "build:dev": "tsc -b && vite build --mode development",
+    "build:test": "tsc -b && vite build --mode test",
+    "preview": "vite preview --mode production",
+    "preview:test": "vite preview --mode test",
     "lint": "eslint .",
-    "preview": "vite preview",
     "check": "tsc -b --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest run --coverage"
+    "test": "vitest run --mode test",
+    "test:watch": "vitest --mode test",
+    "test:ui": "vitest --ui --mode test",
+    "test:coverage": "vitest run --coverage --mode test"
   },
   "dependencies": {
     "clsx": "^2.1.1",
